@@ -18,6 +18,7 @@
 #include "TUM_Sound.h"
 #include "TUM_Utils.h"
 #include "TUM_Font.h"
+#include "TUM_Print.h"
 
 #include "AsyncIO.h"
 
@@ -117,14 +118,41 @@ void checkDraw(unsigned char status, const char *msg)
 {
     if (status) {
         if (msg)
-            fprintf(stderr, "[ERROR] %s, %s\n", msg, tumGetErrorMessage());
+            fprints(stderr, "[ERROR] %s, %s\n", msg, tumGetErrorMessage());
         else {
-            fprintf(stderr, "[ERROR] %s\n", tumGetErrorMessage());
+            fprints(stderr, "[ERROR] %s\n", tumGetErrorMessage());
         }
     }
 }
 
-
+void give_all_sempaphores()
+{
+    if(xSemaphoreGive(invaders.lock) != pdTRUE)
+    {
+    	prints("1 invaders lock wasn't taken.\n");
+		// fflush(stdout);
+    }
+    if(xSemaphoreGive(player.lock) != pdTRUE)
+    {
+    	prints("2 player lock wasn't taken.\n");
+		// fflush(stdout);
+    }
+    if(xSemaphoreGive(bunker.lock) != pdTRUE)
+    {
+    	prints("3 bunker lock wasn't taken.\n");
+		// fflush(stdout);
+    }
+    if(xSemaphoreGive(game_wrapper.lock) != pdTRUE)
+    {
+    	prints("4 game_wrapper lock wasn't taken.\n");
+		// fflush(stdout);
+    }
+    if(xSemaphoreGive(mothership.lock) != pdTRUE)
+    {
+    	prints("5 mothership lock wasn't taken.\n");
+		// fflush(stdout);
+    }
+}
 
 /*
  * Example basic state machine with sequential states
@@ -135,9 +163,9 @@ void basicSequentialStateMachine(void *pvParameters)
     unsigned char state_changed = 1; // Only re-evaluate state if it has changed
     unsigned char input = 0;
 
-//    const int state_change_period = STATE_DEBOUNCE_DELAY;
+    const int state_change_period = STATE_DEBOUNCE_DELAY;
 
-//    TickType_t last_change = xTaskGetTickCount();
+    TickType_t last_change = xTaskGetTickCount();
 
     while (1) {
         if (state_changed) {
@@ -146,25 +174,39 @@ void basicSequentialStateMachine(void *pvParameters)
 
         // Handle state machine input
         if (StateQueue)
+        {
             if (xQueueReceive(StateQueue, &input, portMAX_DELAY) == pdTRUE)
-				current_state = input;
+            {
 
-				// set current state
-				vSetState(current_state);
+                if (xTaskGetTickCount() - last_change > state_change_period) {
+    				current_state = input;
 
-				printf("new state in statemachine %d\n",current_state);
-				fflush(stdout);
+    				// set current state
+    				vSetState(current_state);
 
-				state_changed = 1;
-//				last_change = xTaskGetTickCount();
-				printf("new state in statemachine BUT DEBUUNCE %d\n",current_state);
-				fflush(stdout);
+    				prints("new state in statemachine %d\n",current_state);
+    				// fflush(stdout);
+
+    				state_changed = 1;
+    				last_change = xTaskGetTickCount();
+                }
+                else {
+    				prints("new state in statemachine BUT DEBUUNCE %d\n",current_state);
+    				// fflush(stdout);
+                }
+
+
+            }
+        }
+
+
 
 initial_state:
         // Handle current state
         if (state_changed) {
             switch (current_state) {
                 case STATE_ONE:
+                	give_all_sempaphores();
                     if (Draw_State2) vTaskSuspend(Draw_State2);
                     if (Draw_State3) vTaskSuspend(Draw_State3);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
@@ -177,6 +219,7 @@ initial_state:
 
                     break;
                 case STATE_TWO:
+                	give_all_sempaphores();
                     if (Draw_State1) vTaskSuspend(Draw_State1);
                     if (Draw_State3) vTaskSuspend(Draw_State3);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
@@ -189,6 +232,7 @@ initial_state:
 
                     break;
                 case STATE_THREE:
+                	give_all_sempaphores();
                     if (Draw_State1) vTaskSuspend(Draw_State1);
                     if (Draw_State2) vTaskSuspend(Draw_State2);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
@@ -202,14 +246,14 @@ initial_state:
                     break;
 
                 case STATE_FOUR:
-
+                	give_all_sempaphores();
                     if (Draw_State1) vTaskSuspend(Draw_State1);
                     if (Draw_State2) vTaskSuspend(Draw_State2);
                     if (Draw_State3) vTaskSuspend(Draw_State3);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
-                    if (Draw_Game) vTaskResume(Draw_Game);
+                    if (Draw_Game) vTaskSuspend(Draw_Game);
                     if (Init_Game) vTaskResume(Init_Game);
                     state_changed = 0;
 
@@ -217,9 +261,9 @@ initial_state:
 
 
                 case STATE_FIVE:
-
-                	printf("hey i am in state 5 (gamestate)\n");
-                	fflush(stdout);
+                	give_all_sempaphores();
+                	prints("hey i am in state 5 (gamestate)\n");
+                	// fflush(stdout);
                 	if (Init_Game) vTaskSuspend(Init_Game);
                     if (Draw_State1) vTaskSuspend(Draw_State1);
                     if (Draw_State2) vTaskSuspend(Draw_State2);
@@ -234,6 +278,7 @@ initial_state:
                     break;
 
                 default:
+                	state_changed = 0;
                     break;
             }
             state_changed = 0;
@@ -568,8 +613,8 @@ unsigned char keycodeDOWN_last = 0;
 
 		if(currentState != lastState)
 		{
-			printf("Current State: %d\n", currentState + 1);
-			fflush(stdout);
+			prints("Current State: %d\n", currentState + 1);
+			// fflush(stdout);
 			lastState = currentState;
 		}
 
@@ -1260,19 +1305,19 @@ void vDraw_Game(void *pvParameters){
     my_square_t* life_shape = create_rect(SCREEN_WIDTH/30 - LIFE_SIZE_X/2,  SCREEN_HEIGHT*29/30 - LIFE_SIZE_Y/2, LIFE_SIZE_X, LIFE_SIZE_Y, Red);
 
 
-    image_handle_t player_image = tumDrawLoadImage("../resources/player.png");
-    image_handle_t bunker_block_good_image = tumDrawLoadImage("../resources/bunker_block_good.png");
-    image_handle_t bunker_block_bad_image = tumDrawLoadImage("../resources/bunker_block_bad.png");
-    image_handle_t bunker_block_worse_image = tumDrawLoadImage("../resources/bunker_block_worse.png");
+    image_handle_t player_image = tumDrawLoadImage("../resources/images/player.png");
+    image_handle_t bunker_block_good_image = tumDrawLoadImage("../resources/images/bunker_block_good.png");
+    image_handle_t bunker_block_bad_image = tumDrawLoadImage("../resources/images/bunker_block_bad.png");
+    image_handle_t bunker_block_worse_image = tumDrawLoadImage("../resources/images/bunker_block_worse.png");
 
-    image_handle_t alien_1_1_image = tumDrawLoadImage("../resources/alien_1_1.png");
-    image_handle_t alien_1_2_image = tumDrawLoadImage("../resources/alien_1_2.png");
-    image_handle_t alien_2_1_image = tumDrawLoadImage("../resources/alien_2_1.png");
-    image_handle_t alien_2_2_image = tumDrawLoadImage("../resources/alien_2_2.png");
-    image_handle_t alien_3_1_image = tumDrawLoadImage("../resources/alien_3_1.png");
-    image_handle_t alien_3_2_image = tumDrawLoadImage("../resources/alien_3_2.png");
-    image_handle_t alien_bullet_image = tumDrawLoadImage("../resources/alien_bullet.png");
-    image_handle_t mothership_image = tumDrawLoadImage("../resources/mothership.png");
+    image_handle_t alien_1_1_image = tumDrawLoadImage("../resources/images/alien_1_1.png");
+    image_handle_t alien_1_2_image = tumDrawLoadImage("../resources/images/alien_1_2.png");
+    image_handle_t alien_2_1_image = tumDrawLoadImage("../resources/images/alien_2_1.png");
+    image_handle_t alien_2_2_image = tumDrawLoadImage("../resources/images/alien_2_2.png");
+    image_handle_t alien_3_1_image = tumDrawLoadImage("../resources/images/alien_3_1.png");
+    image_handle_t alien_3_2_image = tumDrawLoadImage("../resources/images/alien_3_2.png");
+    image_handle_t alien_bullet_image = tumDrawLoadImage("../resources/images/alien_bullet.png");
+    image_handle_t mothership_image = tumDrawLoadImage("../resources/images/mothership.png");
 
 	while(1){
 
@@ -1322,8 +1367,8 @@ void vSwap_Invaders(void *pvParameters)
 		if (xSemaphoreTake(invaders.lock, 0) == pdTRUE)
 		{
 			xWaitingTime = abs(round((1/invaders.speed) * 50 ));
-			printf("Swarp Invaders frequency: %d, invaders speed: %f\n", xWaitingTime, invaders.speed);
-			fflush(stdout);
+			prints("Swarp Invaders frequency: %d, invaders speed: %f\n", xWaitingTime, invaders.speed);
+			// fflush(stdout);
 			xSemaphoreGive(invaders.lock);
 		}
 
@@ -1375,7 +1420,7 @@ int main(int argc, char *argv[])
 {
     char *bin_folder_path = tumUtilGetBinFolderPath(argv[0]);
 
-    printf("Initializing: ");
+    prints("Initializing: ");
 
     if (tumDrawInit(bin_folder_path)) {
         PRINT_ERROR("Failed to initialize drawing");
@@ -1487,7 +1532,7 @@ int main(int argc, char *argv[])
     }
 
     if (xTaskCreate(vDraw_Game, "Draw_Game",
-    						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
+    						mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
     						&Draw_Game) != pdPASS) {
         PRINT_TASK_ERROR("Draw_Game");
         goto err_Draw_Game;
