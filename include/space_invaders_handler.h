@@ -11,6 +11,7 @@
 
 extern TaskHandle_t Init_Game;
 extern TaskHandle_t Game_Handler;
+extern TaskHandle_t UDPControlTask;
 
 
 //#ifndef __PONG_H__
@@ -41,6 +42,11 @@ extern player_t player;
 void increment_level();
 void decrement_level();
 
+void vUDPControlTask(void *pvParameters);
+
+void UDPHandler(size_t read_size, char *buffer, void *args);
+
+unsigned char xCheckPongUDPInput(unsigned short *paddle_y);
 
 void get_highscore(short * highscore);
 

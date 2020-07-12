@@ -214,6 +214,7 @@ initial_state:
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
+                    if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (Draw_Lobby_Main) vTaskResume(Draw_Lobby_Main);
                     state_changed = 0;
 
@@ -227,6 +228,7 @@ initial_state:
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
+                    if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (Draw_Lobby_Cheat) vTaskResume(Draw_Lobby_Cheat);
                     state_changed = 0;
 
@@ -240,6 +242,7 @@ initial_state:
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
+                    if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (Draw_Lobby_Highscore) vTaskResume(Draw_Lobby_Highscore);
                     state_changed = 0;
 
@@ -254,6 +257,7 @@ initial_state:
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
+                    if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (Init_Game) vTaskResume(Init_Game);
                     state_changed = 0;
 
@@ -272,6 +276,7 @@ initial_state:
                     if (Game_Handler) vTaskResume(Game_Handler);
                     if (Swap_Invaders) vTaskResume(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskResume(Let_Alien_Shoot);
+                    if (UDPControlTask) vTaskResume(UDPControlTask);
 
                     state_changed = 0;
 

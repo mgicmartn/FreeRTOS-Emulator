@@ -20,16 +20,29 @@
 #include "TUM_Font.h"
 #include "TUM_Print.h"
 
+#include "AsyncIO.h"
+
+#include "queue.h"
+
 
 #include "shapes.h"
 #include "space_invaders_handler.h"
 #include "constants.h"
 
+static QueueHandle_t PlayerXQueue = NULL;
+static QueueHandle_t MothershipXQueue = NULL;
+static QueueHandle_t NextKeyQueue = NULL;
 
+static SemaphoreHandle_t HandleUDP = NULL;
 
 // task handles
 TaskHandle_t Init_Game = NULL;
 TaskHandle_t Game_Handler = NULL;
+TaskHandle_t UDPControlTask = NULL;
+
+aIO_handle_t udp_soc_receive = NULL, udp_soc_transmit = NULL;
+
+typedef enum { NONE = 0, INC = 1, DEC = -1 } opponent_cmd_t;
 
 invaders_t invaders = {0};
 bunker_t bunker = {0};
@@ -37,6 +50,122 @@ game_wrapper_t game_wrapper = {0};
 mothership_t mothership = {0};
 player_t player = {0};
 
+
+void UDPHandler(size_t read_size, char *buffer, void *args)
+{
+    opponent_cmd_t next_key = NONE;
+    BaseType_t xHigherPriorityTaskWoken1 = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken2 = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken3 = pdFALSE;
+
+    if (xSemaphoreTakeFromISR(HandleUDP, &xHigherPriorityTaskWoken1) ==
+        pdTRUE) {
+
+        char send_command = 0;
+        if (strncmp(buffer, "INC", (read_size < 3) ? read_size : 3) ==
+            0) {
+            next_key = INC;
+            send_command = 1;
+        }
+        else if (strncmp(buffer, "DEC",
+                         (read_size < 3) ? read_size : 3) == 0) {
+            next_key = DEC;
+            send_command = 1;
+        }
+        else if (strncmp(buffer, "NONE",
+                         (read_size < 4) ? read_size : 4) == 0) {
+            next_key = NONE;
+            send_command = 1;
+        }
+
+        if (NextKeyQueue && send_command) {
+            xQueueSendFromISR(NextKeyQueue, (void *)&next_key,
+                              &xHigherPriorityTaskWoken2);
+        }
+        xSemaphoreGiveFromISR(HandleUDP, &xHigherPriorityTaskWoken3);
+
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken1 |
+                           xHigherPriorityTaskWoken2 |
+                           xHigherPriorityTaskWoken3);
+    }
+    else {
+        fprintf(stderr, "[ERROR] Overlapping UDPHandler call\n");
+    }
+}
+
+
+
+void vUDPControlTask(void *pvParameters)
+{
+    static char buf[50];
+    char *addr = NULL; // Loopback
+    in_port_t port = UDP_RECEIVE_PORT;
+    unsigned int player_x = 0;
+    unsigned int mothership_x = 0;
+//    char last_difficulty = -1;
+//    char difficulty = 1;
+
+    udp_soc_receive =
+        aIOOpenUDPSocket(addr, port, UDP_BUFFER_SIZE, UDPHandler, NULL);
+
+    prints("UDP socket opened on port %d\n", port);
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(15));
+        while (xQueueReceive(PlayerXQueue, &player_x, 0) == pdTRUE) {
+        }
+        while (xQueueReceive(MothershipXQueue, &mothership_x, 0) == pdTRUE) {
+        }
+//        while (xQueueReceive(DifficultyQueue, &difficulty, 0) == pdTRUE) {
+//        }
+//        prints("px %d, mx %d\n", player_x, mothership_x);
+        short diff = player_x - mothership_x;
+        if (diff > 0) {
+            sprintf(buf, "+%d", diff);
+        }
+        else {
+            sprintf(buf, "-%d", -diff);
+        }
+
+//        prints("send buf: %s\n",buf);
+        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
+                     strlen(buf));
+//        if (last_difficulty != difficulty) {
+//            sprintf(buf, "D%d", difficulty + 1);
+//            aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
+//                         strlen(buf));
+//            last_difficulty = difficulty;
+//        }
+    }
+}
+
+
+unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
+{
+    static opponent_cmd_t current_key = NONE;
+
+    if (NextKeyQueue) {
+        xQueueReceive(NextKeyQueue, &current_key, 0);
+    }
+
+    if (current_key == INC) {
+//        vDecrementPaddleY(mothership_pox_x);
+
+            prints("decrement mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
+    		mothership.pos_x ++;
+
+        prints("inc mothership xxxxxxxxxxxxx\n");
+    }
+    else if (current_key == DEC) {
+//        vIncrementPaddleY(mothership_pox_x);
+
+    		prints("increment mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
+    		mothership.pos_x --;
+
+        prints("dec mothership xxxxxxxxxxxxx\n");
+    }
+    return 0;
+}
 
 void get_highscore(short * highscore)
 {
@@ -189,9 +318,9 @@ void init_mothership(void)
 		prints("in init mothership\n");
 		// fflush(stdout);
 
-		mothership.pos_x = -MOTHERSHIP_SIZE_X;
+		mothership.pos_x = -MOTHERSHIP_SIZE_X + SCREEN_WIDTH/2;
 		mothership.stop = 0;
-		mothership.alive = 0;
+		mothership.alive = 1;
 
 		xSemaphoreGive(mothership.lock);
 	}
@@ -461,6 +590,14 @@ void handle_player_input(unsigned char* moving_left, unsigned char* moving_right
 
 		move_player_bullet(&player.bullet, BULLET_SPEED);
 
+		// send player pos x to udp handler
+
+
+		short player_pos_x = player.pos_x;
+//		prints("handle player send pos x %d\n", player_pos_x);
+
+		xQueueSend(PlayerXQueue, (void *)&player_pos_x, 0);
+
 		xSemaphoreGive(player.lock);
 	}
 }
@@ -520,15 +657,21 @@ void move_mothership(void)
 	if (xSemaphoreTake(mothership.lock, 0) == pdTRUE)
 	{
 
-		if(mothership.alive)
-		{
-			mothership.pos_x += 3;
+//		if(mothership.alive)
+//		{
+//			mothership.pos_x += 3;
+//
+//			if(mothership.pos_x > SCREEN_WIDTH)
+//			{
+//				mothership.alive = 0;
+//			}
+//		}
+		unsigned short mothership_pos_x = mothership.pos_x;
 
-			if(mothership.pos_x > SCREEN_WIDTH)
-			{
-				mothership.alive = 0;
-			}
-		}
+		xCheckPongUDPInput(&mothership_pos_x);
+
+		// send mothership pos x to udp handler
+		xQueueSend(MothershipXQueue, (void *)&mothership.pos_x, 0);
 
 		xSemaphoreGive(mothership.lock);
 	}
@@ -1200,6 +1343,25 @@ int init_space_invaders_handler(void)
 		goto err_mothership_lock;
     }
 
+    HandleUDP = xSemaphoreCreateMutex();
+    if (!HandleUDP) {
+        exit(EXIT_FAILURE);
+    }
+
+
+    PlayerXQueue = xQueueCreate(5, sizeof(short));
+    if (!PlayerXQueue) {
+        exit(EXIT_FAILURE);
+    }
+    MothershipXQueue = xQueueCreate(5, sizeof(short));
+    if (!MothershipXQueue) {
+        exit(EXIT_FAILURE);
+    }
+    NextKeyQueue = xQueueCreate(1, sizeof(opponent_cmd_t));
+    if (!NextKeyQueue) {
+        exit(EXIT_FAILURE);
+    }
+
 
     if (xTaskCreate(vInit_Game, "Init_Game",
     						mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
@@ -1215,14 +1377,24 @@ int init_space_invaders_handler(void)
         goto err_Game_Handler;
     }
 
+    if (xTaskCreate(vUDPControlTask, "UDPControlTask",
+                    mainGENERIC_STACK_SIZE, NULL, mainGENERIC_PRIORITY,
+                    &UDPControlTask) != pdPASS) {
+        PRINT_TASK_ERROR("UDPControlTask");
+        goto err_udpcontrol;
+    }
+
 
     vTaskSuspend(Game_Handler);
     vTaskSuspend(Init_Game);
+    vTaskSuspend(UDPControlTask);
 
 
     return 0;
 
 
+    vTaskDelete(UDPControlTask);
+err_udpcontrol:
 	vSemaphoreDelete(player.lock);
 err_player_lock:
 	vSemaphoreDelete(invaders.lock);

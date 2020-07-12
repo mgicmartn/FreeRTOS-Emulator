@@ -78,6 +78,12 @@
 #define STOP 0
 #define SHOOT 3
 
+
+#define UDP_BUFFER_SIZE 1024
+#define UDP_RECEIVE_PORT 1234
+#define UDP_TRANSMIT_PORT 1235
+
+
 //#define NEXT_TASK 0
 //#define PREV_TASK 1
 //#define NEXT_NEXT_TASK 2
