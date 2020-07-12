@@ -94,7 +94,7 @@ void check_aliens_bullet_collision(unsigned char *player_dead);
 
 void check_player_bullet_collision(unsigned char * player_won, TickType_t * last_time_mothership);
 
-void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_time);
+void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_time, TickType_t* last_time_mothership);
 
 void handle_player_death(unsigned char* invaders_won);
 

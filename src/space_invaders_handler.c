@@ -166,6 +166,15 @@ unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
 
     		prints("dec mothership xxxxxxxxxxxxx\n");
     }
+    else if (current_key == NONE) {
+//        vIncrementPaddleY(mothership_pox_x);
+
+    		prints("stop mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
+    		mothership.inc = 0;
+    		mothership.dec = 0;
+
+    		prints("dec mothership xxxxxxxxxxxxx\n");
+    }
     return 0;
 }
 
@@ -322,7 +331,7 @@ void init_mothership(void)
 
 		mothership.pos_x = -MOTHERSHIP_SIZE_X + SCREEN_WIDTH/2;
 		mothership.stop = 0;
-		mothership.alive = 1;
+		mothership.alive = 0;
 		mothership.inc = 0;
 		mothership.dec = 0;
 
@@ -369,26 +378,6 @@ void init_game_wrapper(double* speed)
 		// fflush(stdout);
 
 
-
-		switch (game_wrapper.set_score_flag)
-		{
-		case 0:
-			game_wrapper.score = 0;
-			break;
-		case 1:
-			game_wrapper.score = 100;
-			break;
-		case 2:
-			game_wrapper.score = 1000;
-			break;
-		case 3:
-			game_wrapper.score = 10000;
-			break;
-		default:
-			break;
-		}
-
-
 		if(game_wrapper.next_level_flag)
 		{
 			game_wrapper.speed += 0.005;
@@ -400,6 +389,24 @@ void init_game_wrapper(double* speed)
 		}
 		else
 		{
+			switch (game_wrapper.set_score_flag)
+			{
+			case 0:
+				game_wrapper.score = 0;
+				break;
+			case 1:
+				game_wrapper.score = 100;
+				break;
+			case 2:
+				game_wrapper.score = 1000;
+				break;
+			case 3:
+				game_wrapper.score = 10000;
+				break;
+			default:
+				break;
+			}
+
 			if(game_wrapper.set_level_flag)
 			{
 				prints("set level flag was there\n");
@@ -664,7 +671,7 @@ void move_mothership(TickType_t* last_time_mothership)
 
 		unsigned short mothership_pos_x = mothership.pos_x;
 
-		xCheckPongUDPInput(&mothership_pos_x);
+		if(mothership.AI_control) xCheckPongUDPInput(&mothership_pos_x);
 
 
 
@@ -1185,7 +1192,7 @@ void check_player_bullet_collision(unsigned char * player_won, TickType_t * last
 }
 
 
-void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_time)
+void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_time, TickType_t* last_time_mothership)
 {
 
 
@@ -1206,6 +1213,7 @@ void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_
 		prints("start with new last time\n");
 		// fflush(stdout);
 		*last_time = xTaskGetTickCount();
+		*last_time_mothership = xTaskGetTickCount();
 		*invaders_resume = 0;
 	}
 }
@@ -1252,7 +1260,7 @@ void check_for_extra_life()
 {
 	if(game_wrapper.get_extra_life_scores > 150)
 	{
-		if(game_wrapper.remaining_life <= 3)
+		if(game_wrapper.remaining_life < 3)
 		{
 			game_wrapper.remaining_life++;
 		}
@@ -1260,6 +1268,7 @@ void check_for_extra_life()
 		game_wrapper.get_extra_life_scores = 0;
 	}
 }
+
 
 void vGame_Handler(void *pvParameters)
 {
@@ -1271,13 +1280,14 @@ void vGame_Handler(void *pvParameters)
 	unsigned char moving_right = 0;
 	unsigned char invaders_resume = 0;
 	TickType_t last_time = 0;
-	TickType_t last_time_mothership = xTaskGetTickCount();
+	TickType_t last_time_mothership = 0;
+	unsigned char mothership_AI_control = 0;
 
 
 	while(1){
 
 
-		set_new_last_time_resume(&invaders_resume, &last_time);
+		set_new_last_time_resume(&invaders_resume, &last_time, &last_time_mothership);
 		move_invaders(&invaders_won, &last_time);
 
 		// mothership

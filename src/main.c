@@ -154,6 +154,22 @@ void give_all_sempaphores()
     }
 }
 
+
+unsigned char AI_control()
+{
+	unsigned char mothership_AI_control = 0;
+
+	if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
+	{
+		mothership_AI_control = mothership.AI_control;
+
+		xSemaphoreGive(mothership.lock);
+	}
+
+	return mothership_AI_control;
+}
+
+
 /*
  * Example basic state machine with sequential states
  */
@@ -257,7 +273,7 @@ initial_state:
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
-                    if (UDPControlTask) vTaskSuspend(UDPControlTask);
+                    if(AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
                     if (Init_Game) vTaskResume(Init_Game);
                     state_changed = 0;
 
@@ -276,7 +292,8 @@ initial_state:
                     if (Game_Handler) vTaskResume(Game_Handler);
                     if (Swap_Invaders) vTaskResume(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskResume(Let_Alien_Shoot);
-                    if (UDPControlTask) vTaskResume(UDPControlTask);
+
+                    if(AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
 
                     state_changed = 0;
 
@@ -290,6 +307,7 @@ initial_state:
         }
     }
 }
+
 
 
 void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
@@ -414,6 +432,7 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 			{
 		        if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
 		        if (Game_Handler) vTaskSuspend(Game_Handler);
+		        if (UDPControlTask) vTaskSuspend(UDPControlTask);
 
 		    	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
 		    	{
@@ -428,6 +447,7 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 			{
                 if (Game_Handler) vTaskResume(Game_Handler);
                 if (Swap_Invaders) vTaskResume(Swap_Invaders);
+                if (UDPControlTask) vTaskResume(UDPControlTask);
 
             	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
             	{
