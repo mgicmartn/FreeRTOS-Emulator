@@ -13,6 +13,8 @@ extern TaskHandle_t Init_Game;
 extern TaskHandle_t Game_Handler;
 extern TaskHandle_t UDPControlTask;
 
+//typedef enum { INIT = 0, PLAYER_WON = 1, INVADERS_WON = 2} game_messages_t;
+
 
 //#ifndef __PONG_H__
 //#define __PONG_H__

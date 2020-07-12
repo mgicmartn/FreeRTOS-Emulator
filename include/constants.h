@@ -15,6 +15,8 @@
 #define POP_UP_PAGE_WIDTH 400
 #define POP_UP_PAGE_HEIGHT 200
 
+#define SECS_TO_WAIT 3
+
 // Space Invader
 #define PLAYER_SIZE_X 30
 #define PLAYER_SIZE_Y 10
@@ -191,6 +193,8 @@ typedef struct game_wrapper_type {
 	unsigned char next_level_flag;
 	short highscore;
 	short get_extra_life_scores;
+	char game_message[100];
+	unsigned char next_state;
 	SemaphoreHandle_t lock;
 } game_wrapper_t;
 

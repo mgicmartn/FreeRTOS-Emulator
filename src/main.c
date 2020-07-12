@@ -273,7 +273,7 @@ initial_state:
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
-                    if(AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
+                    if (AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
                     if (Init_Game) vTaskResume(Init_Game);
                     state_changed = 0;
 
@@ -743,14 +743,27 @@ void vDraw_pop_up_page(void *pvParameters)
 	static char pop_up_page_string[100];
 	static int pop_up_page_string_width = 0;
 
+//	char msg[100] = "NEXT IN";
+	unsigned char next_state = 0;
+
 	my_square_t* pop_up_page = create_rect(SCREEN_WIDTH/2 - POP_UP_PAGE_WIDTH/2, SCREEN_HEIGHT/2 - POP_UP_PAGE_HEIGHT/2, POP_UP_PAGE_WIDTH, POP_UP_PAGE_HEIGHT,Black);
 
-	short countdown = 5;
+	short countdown = SECS_TO_WAIT;
 
 	while(1)
 	{
+		if (Draw_Game) vTaskSuspend(Draw_Game);
 
-		sprintf(pop_up_page_string, "YOU WON! NEXT LEVEL IN %d S!", countdown);
+		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
+		{
+//			msg = game_wrapper.game_message;
+			sprintf(pop_up_page_string, "%s %d s !", game_wrapper.game_message, countdown);
+			next_state = game_wrapper.next_state;
+
+			xSemaphoreGive(game_wrapper.lock);
+		}
+
+
 
 		// draw
 		if (DrawSignal)
@@ -763,8 +776,8 @@ void vDraw_pop_up_page(void *pvParameters)
 				if (!tumDrawFilledBox(pop_up_page->x_pos, pop_up_page->y_pos, pop_up_page->width, pop_up_page->height, pop_up_page->color)){} //Draw Box.
 
 				if (!tumGetTextSize((char *)pop_up_page_string,&pop_up_page_string_width, NULL))
-					tumDrawText(pop_up_page_string,pop_up_page->x_pos + LOBBY_BUTTON_WIDTH/2-pop_up_page_string_width/2,
-								pop_up_page->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
+					tumDrawText(pop_up_page_string,pop_up_page->x_pos + POP_UP_PAGE_WIDTH/2-pop_up_page_string_width/2,
+								pop_up_page->y_pos + POP_UP_PAGE_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
 
 
 				xSemaphoreGive(ScreenLock);
@@ -776,7 +789,18 @@ void vDraw_pop_up_page(void *pvParameters)
 
 		if(countdown <= 0)
 		{
-			countdown = 5;
+			countdown = SECS_TO_WAIT;
+
+			if (StateQueue)
+			{
+				xQueueReset(StateQueue);
+				if(xQueueSend(StateQueue, &next_state, 0) != pdPASS)
+				{
+					prints("failed to send\n");
+					// fflush(stdout);
+				}
+			}
+
 			vTaskSuspend(NULL);
 		}
 
@@ -928,7 +952,7 @@ void vDraw_Lobby_Cheat(void *pvParameters){
 			xSemaphoreGive(game_wrapper.lock);
 		}
 
-		sprintf(setlevel_string, "SET LEVEL: %d [up] [down]", game_wrapper_level + 1);
+		sprintf(setlevel_string, "SET LEVEL: %d [UP] [DOWN]", game_wrapper_level + 1);
 
 		//draw
 		if (DrawSignal)

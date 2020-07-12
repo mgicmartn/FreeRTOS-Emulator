@@ -32,6 +32,7 @@
 static QueueHandle_t PlayerXQueue = NULL;
 static QueueHandle_t MothershipXQueue = NULL;
 static QueueHandle_t NextKeyQueue = NULL;
+//static QueueHandle_t GameMessageQueue = NULL;
 
 static SemaphoreHandle_t HandleUDP = NULL;
 
@@ -44,6 +45,7 @@ TaskHandle_t Draw_pop_up_page = NULL;
 aIO_handle_t udp_soc_receive = NULL, udp_soc_transmit = NULL;
 
 typedef enum { NONE = 0, INC = 1, DEC = -1 } opponent_cmd_t;
+
 
 invaders_t invaders = {0};
 bunker_t bunker = {0};
@@ -387,8 +389,9 @@ void init_game_wrapper(double* speed)
 			game_wrapper.get_extra_life_scores += 10;
 			check_for_extra_life();
 			game_wrapper.next_level_flag = 0;
-
-			vTaskResume(Draw_pop_up_page);
+//			game_wrapper.game_message = "ALIENS WON. BACK TO MENUE IN";
+			sprintf(game_wrapper.game_message, 	"YOU WON. NEXT LEVEL IN");
+			game_wrapper.next_state = five_state_signal;
 
 		}
 		else
@@ -422,6 +425,10 @@ void init_game_wrapper(double* speed)
 			{
 				game_wrapper.level = 0;
 			}
+
+//			game_wrapper.game_message = "GAME STARTS IN";
+			sprintf(game_wrapper.game_message, "GAME STARTS IN");
+			game_wrapper.next_state = five_state_signal;
 
 			game_wrapper.speed = 0.005 * (game_wrapper.level + 1);
 			game_wrapper.remaining_life = 3;
@@ -458,20 +465,15 @@ void vInit_Game(void *pvParameters)
 
 		vTaskDelay(1000);
 
-		unsigned char fivestatesignal = 4;
+//        if (GameMessageQueue)
+//        {
+//        	game_messages_t msg = INIT;
+//            xQueueSend(GameMessageQueue, &msg, 0);
+//        }
 
-		if (StateQueue)
-		{
-			xQueueReset(StateQueue);
-			if(xQueueSend(StateQueue, &fivestatesignal, 0) != pdPASS)
-			{
-				prints("failed to send\n");
-				// fflush(stdout);
-			}
-		}
+		vTaskResume(Draw_pop_up_page);
 
-
-
+//		unsigned char fivestatesignal = 4;
 		prints("change state sent #######################\n");
 		// fflush(stdout);
 
@@ -1245,7 +1247,10 @@ void handle_invaders_won()
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 	{
 		if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
-		game_wrapper.next_level_flag = 1;
+		game_wrapper.next_level_flag = 0;
+//		game_wrapper.game_message = "ALIENS WON. BACK TO MENUE IN";
+		sprintf(game_wrapper.game_message, "ALIENS WON. BACK TO MENUE IN");
+		game_wrapper.next_state = one_state_signal;
 
 		xSemaphoreGive(game_wrapper.lock);
 	}
@@ -1257,6 +1262,9 @@ void handle_player_won()
 	{
 		if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
 		game_wrapper.next_level_flag = 1;
+
+//		sprintf(game_wrapper.game_message, "YOU WON. NEXT LEVEL IN");
+//		game_wrapper.next_state = four_state_signal;
 
 		xSemaphoreGive(game_wrapper.lock);
 	}
@@ -1287,7 +1295,7 @@ void vGame_Handler(void *pvParameters)
 	unsigned char invaders_resume = 0;
 	TickType_t last_time = 0;
 	TickType_t last_time_mothership = 0;
-	unsigned char mothership_AI_control = 0;
+//	unsigned char mothership_AI_control = 0;
 
 
 	while(1){
@@ -1319,7 +1327,9 @@ void vGame_Handler(void *pvParameters)
 			prints("invaders won.\n");
 			// fflush(stdout);
 
-			if (StateQueue) xQueueSend(StateQueue, &one_state_signal, 0);
+			vTaskResume(Draw_pop_up_page);
+
+//			if (StateQueue) xQueueSend(StateQueue, &one_state_signal, 0);
 		}
 
 		if(player_won)
@@ -1328,8 +1338,8 @@ void vGame_Handler(void *pvParameters)
 			player_won = 0;
 
 			prints("player won.\n");
-			// fflush(stdout);
 
+//			vTaskResume(Draw_pop_up_page);
 			if (StateQueue) xQueueSend(StateQueue, &four_state_signal, 0);
 		}
 
@@ -1382,6 +1392,10 @@ int init_space_invaders_handler(void)
     if (!MothershipXQueue) {
         exit(EXIT_FAILURE);
     }
+//    GameMessageQueue = xQueueCreate(5, sizeof(game_messages_t));
+//    if (!GameMessageQueue) {
+//        exit(EXIT_FAILURE);
+//    }
     NextKeyQueue = xQueueCreate(1, sizeof(opponent_cmd_t));
     if (!NextKeyQueue) {
         exit(EXIT_FAILURE);
@@ -1420,6 +1434,7 @@ int init_space_invaders_handler(void)
     vTaskSuspend(Game_Handler);
     vTaskSuspend(Init_Game);
     vTaskSuspend(UDPControlTask);
+    vTaskSuspend(Draw_pop_up_page);
 
 
     return 0;
