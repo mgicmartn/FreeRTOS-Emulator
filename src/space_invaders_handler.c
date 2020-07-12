@@ -259,7 +259,10 @@ void init_game_wrapper(double* speed)
 		{
 			game_wrapper.speed += 0.005;
 			game_wrapper.level++;
+			game_wrapper.get_extra_life_scores += 10;
+			check_for_extra_life();
 			game_wrapper.next_level_flag = 0;
+
 		}
 		else
 		{
@@ -652,18 +655,23 @@ void vkill_Alien(unsigned char y, unsigned char x, unsigned char * player_won)
 			if(y == 0)
 			{
 				game_wrapper.score += 30;
+				game_wrapper.get_extra_life_scores += 3;
 			}
 			else if(y < 3 && y > 0)
 			{
 				game_wrapper.score += 20;
+				game_wrapper.get_extra_life_scores += 2;
 			}
 			else if(y < NUMBER_OF_ALIENS_Y && y > 2)
 			{
 				game_wrapper.score += 10;
+				game_wrapper.get_extra_life_scores += 1;
 			}
 
 			prints("score: %d\n", game_wrapper.score);
 			// fflush(stdout);
+
+			check_for_extra_life();
 
 			xSemaphoreGive(game_wrapper.lock);
 		}
@@ -689,6 +697,10 @@ void vkill_Mothership(void)
 		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 		{
 			game_wrapper.score += 50;
+			game_wrapper.get_extra_life_scores += 5;
+
+			check_for_extra_life();
+
 			xSemaphoreGive(game_wrapper.lock);
 		}
 	}
@@ -1081,6 +1093,19 @@ void handle_player_won()
 		game_wrapper.next_level_flag = 1;
 
 		xSemaphoreGive(game_wrapper.lock);
+	}
+}
+
+void check_for_extra_life()
+{
+	if(game_wrapper.get_extra_life_scores > 150)
+	{
+		if(game_wrapper.remaining_life <= 3)
+		{
+			game_wrapper.remaining_life++;
+		}
+
+		game_wrapper.get_extra_life_scores = 0;
 	}
 }
 

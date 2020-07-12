@@ -96,6 +96,8 @@ void handle_invaders_won();
 
 void handle_player_won();
 
+void check_for_extra_life();
+
 void vGame_Handler(void *pvParameters);
 
 int init_space_invaders_handler(void);

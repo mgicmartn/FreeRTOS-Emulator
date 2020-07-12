@@ -181,6 +181,7 @@ typedef struct game_wrapper_type {
 	unsigned char set_score_flag;
 	unsigned char next_level_flag;
 	short highscore;
+	short get_extra_life_scores;
 	SemaphoreHandle_t lock;
 } game_wrapper_t;
 
