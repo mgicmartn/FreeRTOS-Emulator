@@ -56,9 +56,9 @@ SemaphoreHandle_t ScreenLock = NULL;
 
 
 // State2
-static TaskHandle_t Draw_State1 = NULL;
-static TaskHandle_t Draw_State2 = NULL;
-static TaskHandle_t Draw_State3 = NULL;
+static TaskHandle_t Draw_Lobby_Main = NULL;
+static TaskHandle_t Draw_Lobby_Cheat = NULL;
+static TaskHandle_t Draw_Lobby_Highscore = NULL;
 static TaskHandle_t Draw_Game = NULL;
 static TaskHandle_t Swap_Invaders = NULL;
 static TaskHandle_t Let_Alien_Shoot = NULL;
@@ -207,49 +207,49 @@ initial_state:
             switch (current_state) {
                 case STATE_ONE:
                 	give_all_sempaphores();
-                    if (Draw_State2) vTaskSuspend(Draw_State2);
-                    if (Draw_State3) vTaskSuspend(Draw_State3);
+                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
+                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
-                    if (Draw_State1) vTaskResume(Draw_State1);
+                    if (Draw_Lobby_Main) vTaskResume(Draw_Lobby_Main);
                     state_changed = 0;
 
                     break;
                 case STATE_TWO:
                 	give_all_sempaphores();
-                    if (Draw_State1) vTaskSuspend(Draw_State1);
-                    if (Draw_State3) vTaskSuspend(Draw_State3);
+                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
+                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
-                    if (Draw_State2) vTaskResume(Draw_State2);
+                    if (Draw_Lobby_Cheat) vTaskResume(Draw_Lobby_Cheat);
                     state_changed = 0;
 
                     break;
                 case STATE_THREE:
                 	give_all_sempaphores();
-                    if (Draw_State1) vTaskSuspend(Draw_State1);
-                    if (Draw_State2) vTaskSuspend(Draw_State2);
+                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
+                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
                     if (Draw_Game) vTaskSuspend(Draw_Game);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
-                    if (Draw_State3) vTaskResume(Draw_State3);
+                    if (Draw_Lobby_Highscore) vTaskResume(Draw_Lobby_Highscore);
                     state_changed = 0;
 
                     break;
 
                 case STATE_FOUR:
                 	give_all_sempaphores();
-                    if (Draw_State1) vTaskSuspend(Draw_State1);
-                    if (Draw_State2) vTaskSuspend(Draw_State2);
-                    if (Draw_State3) vTaskSuspend(Draw_State3);
+                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
+                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
+                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
@@ -264,10 +264,10 @@ initial_state:
                 	give_all_sempaphores();
                 	prints("hey i am in state 5 (gamestate)\n");
                 	// fflush(stdout);
-                	if (Init_Game) vTaskSuspend(Init_Game);
-                    if (Draw_State1) vTaskSuspend(Draw_State1);
-                    if (Draw_State2) vTaskSuspend(Draw_State2);
-                    if (Draw_State3) vTaskSuspend(Draw_State3);
+//                	if (Init_Game) vTaskSuspend(Init_Game);
+                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
+                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
+                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
                     if (Draw_Game) vTaskResume(Draw_Game);
                     if (Game_Handler) vTaskResume(Game_Handler);
                     if (Swap_Invaders) vTaskResume(Swap_Invaders);
@@ -690,7 +690,7 @@ unsigned char keycodeDOWN_last = 0;
 
 
 
-void vDraw_State1(void *pvParameters){
+void vDraw_Lobby_Main(void *pvParameters){
 
 	static char spaceInvaders_string[100];
 	static int spaceInvaders_string_width = 0;
@@ -753,12 +753,12 @@ void vDraw_State1(void *pvParameters){
 
 
 
-void vDraw_State2(void *pvParameters){
+void vDraw_Lobby_Cheat(void *pvParameters){
 
 	unsigned char game_wrapper_infinite_life_flag = 0;
 	unsigned char game_wrapper_set_score_flag = 0;
 
-	unsigned char game_wrapper_level = 0;
+	short game_wrapper_level = 0;
 
 	static char cheatMode_string[100];
 	static int cheatMode_string_width = 0;
@@ -823,7 +823,7 @@ void vDraw_State2(void *pvParameters){
 				if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
 				if (!tumDrawFilledBox(setscore_button->x_pos, setscore_button->y_pos, setscore_button->width, setscore_button->height, setscore_button->color)){} //Draw Box.
 
-				if(game_wrapper_level + 1 == 1)
+				if(game_wrapper_level == 0)
 				{
 					if (!tumDrawFilledBox(setlevel_button->x_pos, setlevel_button->y_pos, setlevel_button->width, setlevel_button->height, Grey)){} //Draw Box.
 				}
@@ -907,7 +907,7 @@ void vDraw_State2(void *pvParameters){
 }
 
 
-void vDraw_State3(void *pvParameters){
+void vDraw_Lobby_Highscore(void *pvParameters){
 
 	static char highscoreText_string[100];
 	static int highscoreText_string_width = 0;
@@ -922,7 +922,7 @@ void vDraw_State3(void *pvParameters){
 	sprintf(back_string, "BACK [B]");
 
 	// draw back button
-    my_square_t* back_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2,  SCREEN_HEIGHT*5/6 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Red);
+    my_square_t* back_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2,  SCREEN_HEIGHT*5/6 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
 
 
 	while(1){
@@ -939,13 +939,15 @@ void vDraw_State3(void *pvParameters){
 
 				if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
 
-				if (!tumGetTextSize((char *)highscoreText_string,&highscoreText_string_width, NULL))
+				int font_size =  40;
+
+				if (!tumGetTextSize((char *)highscoreText_string,&highscoreText_string_width, &font_size))
 					tumDrawText(highscoreText_string,SCREEN_WIDTH/2-highscoreText_string_width/2,
 								SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
 
 				if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
 					tumDrawText(highscore_string, SCREEN_WIDTH/2-highscore_string_width/2,
-								SCREEN_HEIGHT*2/3- DEFAULT_FONT_SIZE/2, Black);
+								SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Black);
 
 				if (!tumGetTextSize((char *)back_string,&back_string_width, NULL))
 					tumDrawText(back_string,back_button->x_pos + LOBBY_BUTTON_WIDTH/2-back_string_width/2,
@@ -1020,7 +1022,7 @@ void draw_level()
 	// get score
 	if (xSemaphoreTake(game_wrapper.lock, 0) == pdTRUE)
 	{
-		sprintf(levelText_string, "Level: %d", game_wrapper.level);
+		sprintf(levelText_string, "Level: %d", game_wrapper.level + 1);
 		xSemaphoreGive(game_wrapper.lock);
 	}
 
@@ -1372,7 +1374,7 @@ void vSwap_Invaders(void *pvParameters)
 			xSemaphoreGive(invaders.lock);
 		}
 
-		if (SwapInvadersQueue) xQueueSend(SwapInvadersQueue, &swap, portMAX_DELAY);
+		if (SwapInvadersQueue) xQueueSend(SwapInvadersQueue, &swap, 0);
 
 
 		vTaskDelay(pdMS_TO_TICKS(xWaitingTime));
@@ -1387,7 +1389,7 @@ void vLet_Alien_Shoot(void *pvParameters)
 
 	while(1)
 	{
-		if (AlienShootsQueue) xQueueSend(AlienShootsQueue, &shoot, portMAX_DELAY);
+		if (AlienShootsQueue) xQueueSend(AlienShootsQueue, &shoot, 0);
 		vTaskDelay(pdMS_TO_TICKS(xWaitingTime));
 	}
 }
@@ -1510,25 +1512,25 @@ int main(int argc, char *argv[])
 
 
 
-    if (xTaskCreate(vDraw_State1, "Draw_State1",
+    if (xTaskCreate(vDraw_Lobby_Main, "Draw_Lobby_Main",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_State1) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_State1");
-        goto err_Draw_State1;
+    						&Draw_Lobby_Main) != pdPASS) {
+        PRINT_TASK_ERROR("Draw_Lobby_Main");
+        goto err_Draw_Lobby_Main;
     }
 
-    if (xTaskCreate(vDraw_State2, "Draw_State2",
+    if (xTaskCreate(vDraw_Lobby_Cheat, "Draw_Lobby_Cheat",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_State2) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_State2");
-        goto err_Draw_State2;
+    						&Draw_Lobby_Cheat) != pdPASS) {
+        PRINT_TASK_ERROR("Draw_Lobby_Cheat");
+        goto err_Draw_Lobby_Cheat;
     }
 
-    if (xTaskCreate(vDraw_State3, "Draw_State3",
+    if (xTaskCreate(vDraw_Lobby_Highscore, "Draw_Lobby_Highscore",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_State3) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_State3");
-        goto err_Draw_State3;
+    						&Draw_Lobby_Highscore) != pdPASS) {
+        PRINT_TASK_ERROR("Draw_Lobby_Highscore");
+        goto err_Draw_Lobby_Highscore;
     }
 
     if (xTaskCreate(vDraw_Game, "Draw_Game",
@@ -1558,9 +1560,9 @@ int main(int argc, char *argv[])
     init_space_invaders_handler();
 
 
-    vTaskSuspend(Draw_State1);
-    vTaskSuspend(Draw_State2);
-    vTaskSuspend(Draw_State3);
+    vTaskSuspend(Draw_Lobby_Main);
+    vTaskSuspend(Draw_Lobby_Cheat);
+    vTaskSuspend(Draw_Lobby_Highscore);
     vTaskSuspend(Draw_Game);
     vTaskSuspend(Swap_Invaders);
     vTaskSuspend(Let_Alien_Shoot);
@@ -1572,12 +1574,12 @@ int main(int argc, char *argv[])
 
 
 
-	vTaskDelete(Draw_State1);
-err_Draw_State1:
-	vTaskDelete(Draw_State2);
-err_Draw_State2:
-	vTaskDelete(Draw_State3);
-err_Draw_State3:
+	vTaskDelete(Draw_Lobby_Main);
+err_Draw_Lobby_Main:
+	vTaskDelete(Draw_Lobby_Cheat);
+err_Draw_Lobby_Cheat:
+	vTaskDelete(Draw_Lobby_Highscore);
+err_Draw_Lobby_Highscore:
 	vTaskDelete(Draw_Game);
 err_Draw_Game:
 	vTaskDelete(Swap_Invaders);

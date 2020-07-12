@@ -55,21 +55,21 @@
  * The string that is shown on the window's status bar
  */
 #ifndef WINDOW_TITLE
-#define WINDOW_TITLE "FreeRTOS Emulator"
+#define WINDOW_TITLE "SPACE INVADERS"
 #endif //WINDOW_TITLE
 
 /**
  * Sets the width (in pixels) of the screen
  */
 #ifndef SCREEN_WIDTH
-#define SCREEN_WIDTH 640
+#define SCREEN_WIDTH 960
 #endif //SCREEN_WIDTH
 
 /**
  * Sets the height (in pixels) of the screen
  */
 #ifndef SCREEN_HEIGHT
-#define SCREEN_HEIGHT 480
+#define SCREEN_HEIGHT 720
 #endif //SCREEN_HEIGHT
 
 /**

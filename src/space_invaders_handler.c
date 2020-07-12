@@ -83,7 +83,7 @@ void increment_level()
 {
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 	{
-		prints("increment level\n");
+
 		// fflush(stdout);
 		game_wrapper.level ++;
 
@@ -95,7 +95,7 @@ void increment_level()
 		{
 			game_wrapper.set_level_flag = 0;
 		}
-
+		prints("increment to levelraw %d\n", game_wrapper.level);
 		xSemaphoreGive(game_wrapper.lock);
 	}
 }
@@ -144,7 +144,7 @@ void init_invaders(double speed)
 		invaders.maxFront = NUMBER_OF_ALIENS_Y - 1;
 		invaders.killed = 0;
 		invaders.bullet.alive = 0;
-		invaders.resume = 0;
+		invaders.resume = 1;	// reset last time in game handler
 		invaders.paused = 0;
 
 		for (unsigned char i = 0; i < NUMBER_OF_ALIENS_Y; i++)
@@ -268,14 +268,14 @@ void init_game_wrapper(double* speed)
 				prints("set level flag was there\n");
 				// fflush(stdout);
 				game_wrapper.set_level_flag = 0;
-				game_wrapper.speed = 0.005 * game_wrapper.level;
+
 			}
 			else
 			{
-				game_wrapper.level = 1;
-				game_wrapper.speed = 0.005;
+				game_wrapper.level = 0;
 			}
 
+			game_wrapper.speed = 0.005 * (game_wrapper.level + 1);
 			game_wrapper.remaining_life = 3;
 		}
 
