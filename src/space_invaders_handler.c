@@ -826,7 +826,7 @@ void check_aliens_bullet_collision(unsigned char *player_dead)
 		// check if player bullet crashes invaders bullet
 		if(player_bullet_alive)
 		{
-			if(invaders_bullet_pos_x > player_bullet_pos_x - BULLET_SIZE_X/2 && invaders_bullet_pos_x < player_bullet_pos_x + BULLET_SIZE_X * 2)
+			if(invaders_bullet_pos_x > player_bullet_pos_x - BULLET_SIZE_X && invaders_bullet_pos_x < player_bullet_pos_x + BULLET_SIZE_X * 2)
 			{
 				prints("bullet crash xxxxxxxxx!!\n");
 				// fflush(stdout);
@@ -858,7 +858,8 @@ void check_aliens_bullet_collision(unsigned char *player_dead)
 		// check if bullet reached player y
 		if (invaders_bullet_pos_y > player_pos_y)
 		{
-			if (invaders_bullet_pos_x > player_pos_x && invaders_bullet_pos_x < player_pos_x + PLAYER_SIZE_X)
+			prints("player bullet pos x: %d, player pos x: %d\n", invaders_bullet_pos_x, player_pos_x);
+			if (invaders_bullet_pos_x - BULLET_SIZE_X >= player_pos_x && invaders_bullet_pos_x <= player_pos_x + PLAYER_SIZE_X)
 			{
 				player_dies(player_dead);
 			}
@@ -936,18 +937,28 @@ void check_player_bullet_collision(unsigned char * player_won)
 
 
 		// check if invaders block reached and not already passed
-		if(player_bullet_pos_y < invaders_pos_y + ALIEN_DISTANCE * NUMBER_OF_ALIENS_X - 1  + ALIEN_SIZE_Y && player_bullet_pos_y > invaders_pos_y - INVADERS_SIZE_Y)
+		if(player_bullet_pos_y < invaders_pos_y + ALIEN_DISTANCE * NUMBER_OF_ALIENS_Y * 1  + ALIEN_SIZE_Y && player_bullet_pos_y > invaders_pos_y - INVADERS_SIZE_Y / 2)
 		{
 			for(unsigned char i = 0; i < NUMBER_OF_ALIENS_X; i++)
 			{
 				// for every alien check x
 				if( (player_bullet_pos_x > invaders_pos_x  + i * ALIEN_DISTANCE - BULLET_SIZE_X) && (player_bullet_pos_x < invaders_pos_x + i * ALIEN_DISTANCE + ALIEN_SIZE_X ))
 				{
-					// for every alien whose x the bullet is, check the front alien && check if column still exitsts
-					if (player_bullet_pos_y < invaders_pos_y + ALIEN_DISTANCE * invaders_front[i] + ALIEN_SIZE_Y && invaders_front[i] >= 0)
+					// for every alien whose x the bullet is, check the front alien && check if column still exists
+					if (player_bullet_pos_y < invaders_pos_y + ALIEN_DISTANCE * invaders_front[i] + ALIEN_SIZE_Y &&
+//							player_bullet_pos_y > invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * invaders_front[i - 1] &&
+							invaders_front[i] >= 0)
 					{
 						vkill_Alien(invaders_front[i],i, player_won);
 					}
+
+//					for(short u = NUMBER_OF_ALIENS_Y - 1; u >= 0; u--)
+//					{
+//						if(player_bullet_pos_y < invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * u && player_bullet_pos_y > invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * u - ALIEN_SIZE_Y - ALIEN_DISTANCE / 2)
+//						{
+//							vkill_Alien(u,i, player_won);
+//						}
+//					}
 				}
 			}
 		}
