@@ -34,6 +34,7 @@
 #define MOTHERSHIP_SIZE_X 30
 #define MOTHERSHIP_SIZE_Y 20
 #define MOTHERSHIP_POS_Y (SCREEN_HEIGHT/6 - MOTHERSHIP_SIZE_Y/2)
+#define WAITING_TIME_FOR_MOTHERSHIP 10000
 
 #define INVADERS_STRECH_X (SCREEN_WIDTH/3)
 #define INVADERS_STEP_IN_Y (SCREEN_HEIGHT/50)
@@ -196,7 +197,10 @@ typedef struct game_wrapper_type {
 typedef struct mothership_type{
 	unsigned char alive;
 	short pos_x;
+	unsigned int inc;
+	unsigned int dec;
 	unsigned char stop;
+	unsigned char AI_control;
 	SemaphoreHandle_t lock;
 } mothership_t;
 

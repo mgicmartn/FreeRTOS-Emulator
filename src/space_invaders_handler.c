@@ -152,7 +152,8 @@ unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
 //        vDecrementPaddleY(mothership_pox_x);
 
             prints("decrement mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
-    		mothership.pos_x ++;
+    		mothership.inc = 1;
+    		mothership.dec = 0;
 
         prints("inc mothership xxxxxxxxxxxxx\n");
     }
@@ -160,9 +161,10 @@ unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
 //        vIncrementPaddleY(mothership_pox_x);
 
     		prints("increment mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
-    		mothership.pos_x --;
+    		mothership.inc = 0;
+    		mothership.dec = 1;
 
-        prints("dec mothership xxxxxxxxxxxxx\n");
+    		prints("dec mothership xxxxxxxxxxxxx\n");
     }
     return 0;
 }
@@ -321,6 +323,9 @@ void init_mothership(void)
 		mothership.pos_x = -MOTHERSHIP_SIZE_X + SCREEN_WIDTH/2;
 		mothership.stop = 0;
 		mothership.alive = 1;
+		mothership.inc = 0;
+		mothership.dec = 0;
+
 
 		xSemaphoreGive(mothership.lock);
 	}
@@ -652,23 +657,40 @@ void move_invaders(unsigned char* invaders_won, TickType_t * last_time)
 
 
 
-void move_mothership(void)
+void move_mothership(TickType_t* last_time_mothership)
 {
 	if (xSemaphoreTake(mothership.lock, 0) == pdTRUE)
 	{
 
-//		if(mothership.alive)
-//		{
-//			mothership.pos_x += 3;
-//
-//			if(mothership.pos_x > SCREEN_WIDTH)
-//			{
-//				mothership.alive = 0;
-//			}
-//		}
 		unsigned short mothership_pos_x = mothership.pos_x;
 
 		xCheckPongUDPInput(&mothership_pos_x);
+
+
+
+		if(mothership.alive)
+		{
+			if(!mothership.AI_control)
+			{
+				mothership.inc = 1;
+				mothership.dec = 0;
+			}
+
+			if(mothership.inc)
+			{
+				mothership.pos_x += 3;
+			}
+			else if(mothership.dec)
+			{
+				mothership.pos_x -= 3;
+			}
+
+			if(mothership.pos_x > SCREEN_WIDTH && !mothership.AI_control)
+			{
+				mothership.alive = 0;
+				*last_time_mothership = xTaskGetTickCount();
+			}
+		}
 
 		// send mothership pos x to udp handler
 		xQueueSend(MothershipXQueue, (void *)&mothership.pos_x, 0);
@@ -680,36 +702,24 @@ void move_mothership(void)
 
 
 
-void handle_mothership_appearance(short* last_score_mothership_appearance)
+void handle_mothership_appearance(TickType_t last_time_mothership)
 {
-
-	short score = 0;
-	short invaders_pos_y = 0;
-
-	if (xSemaphoreTake(game_wrapper.lock, 0) == pdTRUE)
-	{
-		score = game_wrapper.score;
-		xSemaphoreGive(game_wrapper.lock);
-	}
-
-	if (xSemaphoreTake(invaders.lock, 0) == pdTRUE)
-	{
-		invaders_pos_y = invaders.pos_y;
-		xSemaphoreGive(invaders.lock);
-	}
-
 
 	if (xSemaphoreTake(mothership.lock, 0) == pdTRUE)
 	{
-//		prints("handle mothership appearance %d, %d, %d\n", score, *last_score_mothership_appearance, invaders_pos_y);
+//		prints("handle mothership appearance %d, %d, %d\n", score, *last_time_mothership, invaders_pos_y);
 //		// fflush(stdout);
 
-		if(score - *last_score_mothership_appearance > 100 && invaders_pos_y > SCREEN_HEIGHT*2/6)
+		if(mothership.alive == 0)
 		{
-			*last_score_mothership_appearance = score;
-			mothership.pos_x = -MOTHERSHIP_SIZE_X;
-			mothership.alive = 1;
+			if(xTaskGetTickCount() - last_time_mothership > pdMS_TO_TICKS(WAITING_TIME_FOR_MOTHERSHIP))
+			{
+				prints("mothership got released!!\n");
+				mothership.alive = 1;
+				mothership.pos_x = -MOTHERSHIP_SIZE_X;
+			}
 		}
+
 
 		xSemaphoreGive(mothership.lock);
 	}
@@ -831,12 +841,10 @@ void vkill_Alien(unsigned char y, unsigned char x, unsigned char * player_won)
 }
 
 
-void vkill_Mothership(void)
+void vkill_Mothership(TickType_t * last_time_mothership)
 {
 	if(mothership.alive)
 	{
-		mothership.alive = 0;
-
 		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 		{
 			game_wrapper.score += 50;
@@ -846,9 +854,10 @@ void vkill_Mothership(void)
 
 			xSemaphoreGive(game_wrapper.lock);
 		}
+
+		*last_time_mothership = xTaskGetTickCount();
+		mothership.alive = 0;
 	}
-
-
 
 }
 
@@ -1058,7 +1067,7 @@ void check_aliens_bullet_collision(unsigned char *player_dead)
 }
 
 
-void check_player_bullet_collision(unsigned char * player_won)
+void check_player_bullet_collision(unsigned char * player_won, TickType_t * last_time_mothership)
 {
 	short invaders_pos_y = 0;
 	short invaders_pos_x = 0;
@@ -1163,7 +1172,7 @@ void check_player_bullet_collision(unsigned char * player_won)
 			{
 				if(player_bullet_pos_x > mothership.pos_x && player_bullet_pos_x < mothership.pos_x + MOTHERSHIP_SIZE_X)
 				{
-					vkill_Mothership();
+					vkill_Mothership(last_time_mothership);
 				}
 
 			}
@@ -1262,7 +1271,7 @@ void vGame_Handler(void *pvParameters)
 	unsigned char moving_right = 0;
 	unsigned char invaders_resume = 0;
 	TickType_t last_time = 0;
-	short last_score_mothership_appearance = 0;
+	TickType_t last_time_mothership = xTaskGetTickCount();
 
 
 	while(1){
@@ -1272,11 +1281,11 @@ void vGame_Handler(void *pvParameters)
 		move_invaders(&invaders_won, &last_time);
 
 		// mothership
-		handle_mothership_appearance(&last_score_mothership_appearance);
-		move_mothership();
+		handle_mothership_appearance(last_time_mothership);
+		move_mothership(&last_time_mothership);
 
 		handle_player_input(&moving_left, &moving_right);
-		check_player_bullet_collision(&player_won);
+		check_player_bullet_collision(&player_won, &last_time_mothership);
 		check_aliens_bullet_collision(&player_dead);
 		Alien_shoots();
 

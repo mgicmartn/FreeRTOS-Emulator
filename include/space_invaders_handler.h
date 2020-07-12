@@ -76,13 +76,13 @@ void handle_player_input(unsigned char* moving_left, unsigned char* moving_right
 
 void move_invaders(unsigned char* invaders_won, TickType_t * last_time);
 
-void move_mothership(void);
+void move_mothership(TickType_t* last_time_mothership);
 
-void handle_mothership_appearance(short* last_score_mothership_appearance);
+void handle_mothership_appearance(TickType_t last_time_mothership);
 
 void vkill_Alien(unsigned char y, unsigned char x, unsigned char * player_won);
 
-void vkill_Mothership(void);
+void vkill_Mothership(TickType_t * last_time_mothership);
 
 void destruct_bunker_block_player(short s, short player_front, short t);
 
@@ -92,7 +92,7 @@ void player_dies(unsigned char *player_dead);
 
 void check_aliens_bullet_collision(unsigned char *player_dead);
 
-void check_player_bullet_collision(unsigned char * player_won);
+void check_player_bullet_collision(unsigned char * player_won, TickType_t * last_time_mothership);
 
 void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_time);
 

@@ -451,6 +451,21 @@ void checkButton_C(unsigned char * keycodeC_last, const unsigned char go_to){
 	}
 }
 
+void checkButton_A(unsigned char * keycodeA_last){
+	if (*keycodeA_last != buttons.buttons[KEYCODE(A)])
+	{
+		if(buttons.buttons[KEYCODE(A)])
+		{
+			if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
+			{
+				mothership.AI_control = (mothership.AI_control + 1) % 2;
+				xSemaphoreGive(mothership.lock);
+			}
+		}
+		*keycodeA_last = buttons.buttons[KEYCODE(A)];
+	}
+}
+
 void checkButton_H(unsigned char * keycodeH_last, const unsigned char go_to){
 	if (*keycodeH_last != buttons.buttons[KEYCODE(H)])
 	{
@@ -595,6 +610,7 @@ unsigned char currentState = 0;
 unsigned char lastState = 0;
 unsigned char paused = 0;
 
+unsigned char keycodeA_last = 0;
 unsigned char keycodeC_last = 0;
 unsigned char keycodeH_last = 0;
 unsigned char keycodeP_last = 0;
@@ -631,6 +647,7 @@ unsigned char keycodeDOWN_last = 0;
         			checkButton_P(&keycodeP_last, four_state_signal);
         			checkButton_C(&keycodeC_last, two_state_signal);
         			checkButton_H(&keycodeH_last, three_state_signal);
+        			checkButton_A(&keycodeA_last);
 
         			xSemaphoreGive(buttons.lock);
         		}
@@ -655,7 +672,6 @@ unsigned char keycodeDOWN_last = 0;
             case STATE_THREE:
         		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
         		{
-
         			checkButton_B(&keycodeB_last, one_state_signal);
 
         			xSemaphoreGive(buttons.lock);
@@ -697,6 +713,8 @@ unsigned char keycodeDOWN_last = 0;
 
 void vDraw_Lobby_Main(void *pvParameters){
 
+	unsigned char mothership_AI_control = 0;
+
 	static char spaceInvaders_string[100];
 	static int spaceInvaders_string_width = 0;
 	static char play_string[100];
@@ -705,16 +723,21 @@ void vDraw_Lobby_Main(void *pvParameters){
 	static int cheat_string_width = 0;
 	static char highscore_string[100];
 	static int highscore_string_width = 0;
+	static char two_player_mode_string[100];
+	static int two_player_mode_string_width = 0;
+
 
 	sprintf(spaceInvaders_string, "SPACE INVADERS");
 	sprintf(play_string, "PLAY [P]");
 	sprintf(cheat_string, "CHEAT [C]");
 	sprintf(highscore_string, "HIGHSCORE [H]");
+	sprintf(two_player_mode_string, "TWO PLAYER (AI-MODE) [A]");
 
 	// create buttons
-    my_square_t* play_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT/2 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
-    my_square_t* cheat_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*2/3 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
-    my_square_t* highscore_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*5/6 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* play_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*3/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* cheat_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*4/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* highscore_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*5/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* two_player_mode_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*6/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
 
 
 	while(1){
@@ -727,12 +750,29 @@ void vDraw_Lobby_Main(void *pvParameters){
 
 				checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
 
+				if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
+				{
+
+					mothership_AI_control = mothership.AI_control;
+
+					xSemaphoreGive(mothership.lock);
+				}
+
 //				// draw static text and buttons
 //				drawText_State1(play_button, cheat_button, highscore_button);
 				// draw button fields
 				if (!tumDrawFilledBox(play_button->x_pos, play_button->y_pos, play_button->width, play_button->height, play_button->color)){} //Draw Box.
 				if (!tumDrawFilledBox(cheat_button->x_pos, cheat_button->y_pos, cheat_button->width, cheat_button->height, cheat_button->color)){} //Draw Box.
 				if (!tumDrawFilledBox(highscore_button->x_pos, highscore_button->y_pos, highscore_button->width, highscore_button->height, highscore_button->color)){} //Draw Box.
+
+				if(mothership_AI_control)
+				{
+					if (!tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Green)){} //Draw Box.
+				}
+				else{
+					if (!tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Black)){} //Draw Box.
+
+				}
 
 				// draw button text
 				if (!tumGetTextSize((char *)spaceInvaders_string,&spaceInvaders_string_width, NULL))
@@ -747,6 +787,9 @@ void vDraw_Lobby_Main(void *pvParameters){
 				if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
 					tumDrawText(highscore_string,highscore_button->x_pos + LOBBY_BUTTON_WIDTH/2-highscore_string_width/2,
 								highscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
+				if (!tumGetTextSize((char *)two_player_mode_string,&two_player_mode_string_width, NULL))
+					tumDrawText(two_player_mode_string,two_player_mode_button->x_pos + LOBBY_BUTTON_WIDTH/2-two_player_mode_string_width/2,
+								two_player_mode_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
 
 				xSemaphoreGive(ScreenLock);
 			}
