@@ -39,6 +39,7 @@ static SemaphoreHandle_t HandleUDP = NULL;
 TaskHandle_t Init_Game = NULL;
 TaskHandle_t Game_Handler = NULL;
 TaskHandle_t UDPControlTask = NULL;
+TaskHandle_t Draw_pop_up_page = NULL;
 
 aIO_handle_t udp_soc_receive = NULL, udp_soc_transmit = NULL;
 
@@ -105,6 +106,8 @@ void vUDPControlTask(void *pvParameters)
 //    char last_difficulty = -1;
 //    char difficulty = 1;
 
+    short last_diff = 0;
+
     udp_soc_receive =
         aIOOpenUDPSocket(addr, port, UDP_BUFFER_SIZE, UDPHandler, NULL);
 
@@ -127,9 +130,17 @@ void vUDPControlTask(void *pvParameters)
             sprintf(buf, "-%d", -diff);
         }
 
+        if(last_diff != diff)
+		{
+        	aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+        	last_diff = diff;
+		}
+
 //        prints("send buf: %s\n",buf);
-        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
-                     strlen(buf));
+
+
+
+
 //        if (last_difficulty != difficulty) {
 //            sprintf(buf, "D%d", difficulty + 1);
 //            aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
@@ -149,31 +160,22 @@ unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
     }
 
     if (current_key == INC) {
-//        vDecrementPaddleY(mothership_pox_x);
 
-            prints("decrement mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
     		mothership.inc = 1;
     		mothership.dec = 0;
 
-        prints("inc mothership xxxxxxxxxxxxx\n");
     }
     else if (current_key == DEC) {
-//        vIncrementPaddleY(mothership_pox_x);
 
-    		prints("increment mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
     		mothership.inc = 0;
     		mothership.dec = 1;
 
-    		prints("dec mothership xxxxxxxxxxxxx\n");
     }
     else if (current_key == NONE) {
-//        vIncrementPaddleY(mothership_pox_x);
 
-    		prints("stop mothership zzzzzzzzzzzzzzzzzzzzzzzzzzz\n");
     		mothership.inc = 0;
     		mothership.dec = 0;
 
-    		prints("dec mothership xxxxxxxxxxxxx\n");
     }
     return 0;
 }
@@ -386,6 +388,8 @@ void init_game_wrapper(double* speed)
 			check_for_extra_life();
 			game_wrapper.next_level_flag = 0;
 
+			vTaskResume(Draw_pop_up_page);
+
 		}
 		else
 		{
@@ -474,6 +478,8 @@ void vInit_Game(void *pvParameters)
 		vTaskSuspend(NULL);
 	}
 }
+
+
 
 
 void move_alien_bullet(bullet_t* bullet, short speed)
@@ -1396,6 +1402,13 @@ int init_space_invaders_handler(void)
         goto err_Game_Handler;
     }
 
+    if (xTaskCreate(vDraw_pop_up_page, "Draw_pop_up_page",
+    						mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
+    						&Draw_pop_up_page) != pdPASS) {
+        PRINT_TASK_ERROR("Draw_pop_up_page");
+        goto err_Draw_pop_up_page;
+    }
+
     if (xTaskCreate(vUDPControlTask, "UDPControlTask",
                     mainGENERIC_STACK_SIZE, NULL, mainGENERIC_PRIORITY,
                     &UDPControlTask) != pdPASS) {
@@ -1414,6 +1427,8 @@ int init_space_invaders_handler(void)
 
     vTaskDelete(UDPControlTask);
 err_udpcontrol:
+	vTaskDelete(Draw_pop_up_page);
+err_Draw_pop_up_page:
 	vSemaphoreDelete(player.lock);
 err_player_lock:
 	vSemaphoreDelete(invaders.lock);

@@ -12,6 +12,8 @@
 #define LOBBY_BUTTON_WIDTH 400
 #define LOBBY_BUTTON_HEIGHT 60
 
+#define POP_UP_PAGE_WIDTH 400
+#define POP_UP_PAGE_HEIGHT 200
 
 // Space Invader
 #define PLAYER_SIZE_X 30

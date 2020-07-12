@@ -430,6 +430,10 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 		{
 			if(*paused == 0)
 			{
+			    static char buf[50];
+			    sprintf(buf, "PAUSE");
+		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+
 		        if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
 		        if (Game_Handler) vTaskSuspend(Game_Handler);
 		        if (UDPControlTask) vTaskSuspend(UDPControlTask);
@@ -448,6 +452,10 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
                 if (Game_Handler) vTaskResume(Game_Handler);
                 if (Swap_Invaders) vTaskResume(Swap_Invaders);
                 if (UDPControlTask) vTaskResume(UDPControlTask);
+
+			    static char buf[50];
+			    sprintf(buf, "RESUME");
+		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 
             	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
             	{
@@ -729,6 +737,51 @@ unsigned char keycodeDOWN_last = 0;
 }
 
 
+
+void vDraw_pop_up_page(void *pvParameters)
+{
+	static char pop_up_page_string[100];
+	static int pop_up_page_string_width = 0;
+
+	my_square_t* pop_up_page = create_rect(SCREEN_WIDTH/2 - POP_UP_PAGE_WIDTH/2, SCREEN_HEIGHT/2 - POP_UP_PAGE_HEIGHT/2, POP_UP_PAGE_WIDTH, POP_UP_PAGE_HEIGHT,Black);
+
+	short countdown = 5;
+
+	while(1)
+	{
+
+		sprintf(pop_up_page_string, "YOU WON! NEXT LEVEL IN %d S!", countdown);
+
+		// draw
+		if (DrawSignal)
+			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
+			{
+				xSemaphoreTake(ScreenLock, portMAX_DELAY);
+
+				checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+
+				if (!tumDrawFilledBox(pop_up_page->x_pos, pop_up_page->y_pos, pop_up_page->width, pop_up_page->height, pop_up_page->color)){} //Draw Box.
+
+				if (!tumGetTextSize((char *)pop_up_page_string,&pop_up_page_string_width, NULL))
+					tumDrawText(pop_up_page_string,pop_up_page->x_pos + LOBBY_BUTTON_WIDTH/2-pop_up_page_string_width/2,
+								pop_up_page->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
+
+
+				xSemaphoreGive(ScreenLock);
+			}
+
+		countdown--;
+
+		vTaskDelay((TickType_t)1000); // Basic sleep of 100ms
+
+		if(countdown <= 0)
+		{
+			countdown = 5;
+			vTaskSuspend(NULL);
+		}
+
+	}
+}
 
 
 void vDraw_Lobby_Main(void *pvParameters){
