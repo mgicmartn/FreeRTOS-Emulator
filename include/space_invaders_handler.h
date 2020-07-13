@@ -13,6 +13,10 @@ extern TaskHandle_t Init_Game;
 extern TaskHandle_t Game_Handler;
 extern TaskHandle_t UDPControlTask;
 
+typedef enum { INVADERS_WON, PLAYER_WON, RESET_PRESSED } end_game_reason_t;
+
+
+
 //typedef enum { INIT = 0, PLAYER_WON = 1, INVADERS_WON = 2} game_messages_t;
 
 
@@ -40,6 +44,8 @@ extern bunker_t bunker;
 extern game_wrapper_t game_wrapper;
 extern mothership_t mothership;
 extern player_t player;
+
+
 
 void increment_level();
 void decrement_level();
@@ -100,9 +106,7 @@ void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_
 
 void handle_player_death(unsigned char* invaders_won);
 
-void handle_invaders_won();
-
-void handle_player_won();
+void handle_end_match(end_game_reason_t reason);
 
 void check_for_extra_life();
 

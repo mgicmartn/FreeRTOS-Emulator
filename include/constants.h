@@ -5,6 +5,9 @@
 #define mainGENERIC_PRIORITY (tskIDLE_PRIORITY)
 #define mainGENERIC_STACK_SIZE ((unsigned short)2560)
 
+
+#define BUTTON_DEBOUNCE_DELAY 50
+
 //Exercise 2
 #define NUMBERofSTATES 2
 #define ROT_ANGLE_VELOC 1
@@ -60,7 +63,7 @@
 #define BUNKER_POS_Y (SCREEN_HEIGHT/8 * 6)
 
 #define LIFE_SIZE_X 20
-#define LIFE_SIZE_Y 10
+#define LIFE_SIZE_Y 20
 #define LIFE_SIZE_DISTANCE (LIFE_SIZE_X + 10)
 
 //Exercise 3

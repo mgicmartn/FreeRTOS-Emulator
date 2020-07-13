@@ -47,6 +47,7 @@ aIO_handle_t udp_soc_receive = NULL, udp_soc_transmit = NULL;
 typedef enum { NONE = 0, INC = 1, DEC = -1 } opponent_cmd_t;
 
 
+
 invaders_t invaders = {0};
 bunker_t bunker = {0};
 game_wrapper_t game_wrapper = {0};
@@ -605,8 +606,19 @@ void handle_player_input(unsigned char* moving_left, unsigned char* moving_right
 				}
 			}
 
+		if(player.pos_x > SCREEN_WIDTH - PLAYER_SIZE_X)
+		{
+			*moving_right = 0;
+		}
+		if(player.pos_x <= 0)
+		{
+			*moving_left = 0;
+		}
+
 		if(*moving_left) player.pos_x -= PLAYER_SPEED ;
 		if(*moving_right) player.pos_x += PLAYER_SPEED;
+
+
 
 		move_player_bullet(&player.bullet, BULLET_SPEED);
 
@@ -700,10 +712,29 @@ void move_mothership(TickType_t* last_time_mothership)
 				mothership.pos_x -= 3;
 			}
 
-			if(mothership.pos_x > SCREEN_WIDTH && !mothership.AI_control)
+			if(mothership.pos_x > SCREEN_WIDTH )
 			{
-				mothership.alive = 0;
-				*last_time_mothership = xTaskGetTickCount();
+				if(mothership.AI_control)
+				{
+					mothership.pos_x = -MOTHERSHIP_SIZE_X;
+				}
+				else
+				{
+					mothership.alive = 0;
+					*last_time_mothership = xTaskGetTickCount();
+				}
+			}
+			if(mothership.pos_x < -MOTHERSHIP_SIZE_X)
+			{
+				if(mothership.AI_control)
+				{
+					mothership.pos_x = SCREEN_WIDTH;
+				}
+				else
+				{
+					mothership.alive = 0;
+					*last_time_mothership = xTaskGetTickCount();
+				}
 			}
 		}
 
@@ -1242,33 +1273,37 @@ void handle_player_death(unsigned char* invaders_won)
 		}
 }
 
-void handle_invaders_won()
+void handle_end_match(end_game_reason_t reason)
 {
+
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 	{
-		if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
-		game_wrapper.next_level_flag = 0;
-//		game_wrapper.game_message = "ALIENS WON. BACK TO MENUE IN";
-		sprintf(game_wrapper.game_message, "ALIENS WON. BACK TO MENUE IN");
-		game_wrapper.next_state = one_state_signal;
+
+		if(reason == INVADERS_WON)	// invaders won
+		{
+			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
+			game_wrapper.next_level_flag = 0;
+
+			sprintf(game_wrapper.game_message, "ALIENS WON. BACK TO MENUE IN");
+			game_wrapper.next_state = one_state_signal;
+
+		}
+		else if(reason == PLAYER_WON)	// player won
+		{
+			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
+			game_wrapper.next_level_flag = 1;
+		}
+		else if(reason == RESET_PRESSED)	// reset pressed
+		{
+			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
+			game_wrapper.next_level_flag = 0;
+		}
 
 		xSemaphoreGive(game_wrapper.lock);
 	}
 }
 
-void handle_player_won()
-{
-	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
-	{
-		if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
-		game_wrapper.next_level_flag = 1;
 
-//		sprintf(game_wrapper.game_message, "YOU WON. NEXT LEVEL IN");
-//		game_wrapper.next_state = four_state_signal;
-
-		xSemaphoreGive(game_wrapper.lock);
-	}
-}
 
 void check_for_extra_life()
 {
@@ -1321,7 +1356,7 @@ void vGame_Handler(void *pvParameters)
 
 		if(invaders_won)
 		{
-			handle_invaders_won();
+			handle_end_match(INVADERS_WON);
 			invaders_won = 0;
 
 			prints("invaders won.\n");
@@ -1334,7 +1369,7 @@ void vGame_Handler(void *pvParameters)
 
 		if(player_won)
 		{
-			handle_player_won();
+			handle_end_match(PLAYER_WON);
 			player_won = 0;
 
 			prints("player won.\n");

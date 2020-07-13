@@ -502,11 +502,16 @@ void checkButton_H(unsigned char * keycodeH_last, const unsigned char go_to){
 	}
 }
 
-void checkButton_B(unsigned char * keycodeB_last, const unsigned char go_to){
+void checkButton_B(unsigned char * keycodeB_last, const unsigned char go_to, unsigned char* paused){
 	if (*keycodeB_last != buttons.buttons[KEYCODE(B)])
 	{
 
-		if(buttons.buttons[KEYCODE(B)])	if (StateQueue) xQueueSend(StateQueue, &go_to, 0);
+		if(buttons.buttons[KEYCODE(B)])
+		{
+			if(*paused) *paused = 0;
+			handle_end_match(RESET_PRESSED);
+			if (StateQueue) xQueueSend(StateQueue, &go_to, 0);
+		}
 		*keycodeB_last = buttons.buttons[KEYCODE(B)];
 	}
 }
@@ -565,35 +570,56 @@ void checkButton_U(unsigned char * keycodeU_last){
 
 
 
-void checkButton_LEFT(unsigned char * keycodeLEFT_last, const unsigned char move, const unsigned char stop){
-	if (*keycodeLEFT_last != buttons.buttons[KEYCODE(LEFT)])
+void checkButton_LEFT(unsigned char * keycodeLEFT_last, short* debounce_LEFT, const unsigned char move, const unsigned char stop){
+
+	if (*keycodeLEFT_last != buttons.buttons[KEYCODE(LEFT)]) (*debounce_LEFT)++;
+	else (*debounce_LEFT) = 0;
+
+	if(*debounce_LEFT >= 1)		// this function gets again called after 50 ticks (Debounce Delay)
 	{
-		if(buttons.buttons[KEYCODE(LEFT)] == 1)
+		if (*keycodeLEFT_last != buttons.buttons[KEYCODE(LEFT)])
 		{
-			if (PlayerQueue) xQueueSend(PlayerQueue, &move, 0);
-			*keycodeLEFT_last = buttons.buttons[KEYCODE(LEFT)];
+//			prints("still new button \n");
+
+			if(buttons.buttons[KEYCODE(LEFT)] == 1)
+			{
+				if (PlayerQueue) xQueueSend(PlayerQueue, &move, 0);
+				*keycodeLEFT_last = buttons.buttons[KEYCODE(LEFT)];
+			}
+			else if(buttons.buttons[KEYCODE(LEFT)] == 0)
+			{
+				if (PlayerQueue) xQueueSend(PlayerQueue, &stop, 0);
+				*keycodeLEFT_last = buttons.buttons[KEYCODE(LEFT)];
+			}
 		}
-		else if(buttons.buttons[KEYCODE(LEFT)] == 0)
-		{
-			if (PlayerQueue) xQueueSend(PlayerQueue, &stop, 0);
-			*keycodeLEFT_last = buttons.buttons[KEYCODE(LEFT)];
-		}
+
+		*debounce_LEFT = 0;
 	}
+
 }
 
-void checkButton_RIGHT(unsigned char * keycodeRIGHT_last, const unsigned char move, const unsigned char stop){
-	if (*keycodeRIGHT_last != buttons.buttons[KEYCODE(RIGHT)])
+void checkButton_RIGHT(unsigned char * keycodeRIGHT_last, short* debounce_RIGHT, const unsigned char move, const unsigned char stop){
+
+	if (*keycodeRIGHT_last != buttons.buttons[KEYCODE(RIGHT)]) (*debounce_RIGHT)++;
+	else (*debounce_RIGHT) = 0;
+
+	if(*debounce_RIGHT >= 1)		// this function gets again called after 50 ticks (Debounce Delay)
 	{
-		if(buttons.buttons[KEYCODE(RIGHT)] == 1)
+		if (*keycodeRIGHT_last != buttons.buttons[KEYCODE(RIGHT)])
 		{
-			if (PlayerQueue) xQueueSend(PlayerQueue, &move, 0);
-			*keycodeRIGHT_last = buttons.buttons[KEYCODE(RIGHT)];
+			if(buttons.buttons[KEYCODE(RIGHT)] == 1)
+			{
+				if (PlayerQueue) xQueueSend(PlayerQueue, &move, 0);
+				*keycodeRIGHT_last = buttons.buttons[KEYCODE(RIGHT)];
+			}
+			else if(buttons.buttons[KEYCODE(RIGHT)] == 0)
+			{
+				if (PlayerQueue) xQueueSend(PlayerQueue, &stop, 0);
+				*keycodeRIGHT_last = buttons.buttons[KEYCODE(RIGHT)];
+			}
 		}
-		else if(buttons.buttons[KEYCODE(RIGHT)] == 0)
-		{
-			if (PlayerQueue) xQueueSend(PlayerQueue, &stop, 0);
-			*keycodeRIGHT_last = buttons.buttons[KEYCODE(RIGHT)];
-		}
+
+		*debounce_RIGHT = 0;
 	}
 }
 
@@ -653,6 +679,9 @@ unsigned char keycodeSPACE_last = 0;
 unsigned char keycodeUP_last = 0;
 unsigned char keycodeDOWN_last = 0;
 
+short debounceLEFT = 0;
+short debounceRIGHT = 0;
+
 
 
 	while(1)
@@ -685,7 +714,7 @@ unsigned char keycodeDOWN_last = 0;
         		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
         		{
         			checkButton_P(&keycodeP_last, four_state_signal);
-        			checkButton_B(&keycodeB_last, one_state_signal);
+        			checkButton_B(&keycodeB_last, one_state_signal, &paused);
         			checkButton_L(&keycodeL_last);
         			checkButton_T(&keycodeT_last);
         			checkButton_K(&keycodeK_last);
@@ -700,7 +729,7 @@ unsigned char keycodeDOWN_last = 0;
             case STATE_THREE:
         		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
         		{
-        			checkButton_B(&keycodeB_last, one_state_signal);
+        			checkButton_B(&keycodeB_last, one_state_signal, &paused);
 
         			xSemaphoreGive(buttons.lock);
         		}
@@ -712,13 +741,14 @@ unsigned char keycodeDOWN_last = 0;
             case STATE_FIVE:
         		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
         		{
-        			checkButton_B(&keycodeB_last, one_state_signal);
+        			prints("took button semph\n");
+        			checkButton_B(&keycodeB_last, one_state_signal, &paused);
         			checkButton_P_game(&keycodeP_last, &paused);
 
         			if(!paused)
         			{
-            			checkButton_LEFT(&keycodeLEFT_last, move_left_signal, stop_signal);
-            			checkButton_RIGHT(&keycodeRIGHT_last, move_right_signal, stop_signal);
+            			checkButton_LEFT(&keycodeLEFT_last, &debounceLEFT, move_left_signal, stop_signal);
+            			checkButton_RIGHT(&keycodeRIGHT_last, &debounceRIGHT, move_right_signal, stop_signal);
             			checkButton_SPACE(&keycodeSPACE_last, shoot_signal);
         			}
 
@@ -837,6 +867,8 @@ void vDraw_Lobby_Main(void *pvParameters){
     my_square_t* two_player_mode_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*6/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
 
 
+    image_handle_t background_image = tumDrawLoadImage("../resources/images/lobby_main.png");
+
 	while(1){
 
 		// draw
@@ -845,7 +877,13 @@ void vDraw_Lobby_Main(void *pvParameters){
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-				checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+				if(tumDrawLoadedImage(background_image, 0, 0))
+				{
+					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+					if (!tumGetTextSize((char *)spaceInvaders_string,&spaceInvaders_string_width, NULL))
+						tumDrawText(spaceInvaders_string,SCREEN_WIDTH/2-spaceInvaders_string_width/2,
+									SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
+				}
 
 				if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
 				{
@@ -872,9 +910,7 @@ void vDraw_Lobby_Main(void *pvParameters){
 				}
 
 				// draw button text
-				if (!tumGetTextSize((char *)spaceInvaders_string,&spaceInvaders_string_width, NULL))
-					tumDrawText(spaceInvaders_string,SCREEN_WIDTH/2-spaceInvaders_string_width/2,
-								SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
+
 				if (!tumGetTextSize((char *)play_string,&play_string_width, NULL))
 					tumDrawText(play_string,play_button->x_pos + LOBBY_BUTTON_WIDTH/2-play_string_width/2,
 								play_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
@@ -940,7 +976,7 @@ void vDraw_Lobby_Cheat(void *pvParameters){
     my_square_t* back_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*8/9 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
     my_square_t* setlevel_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*4/9 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT, Grey);
 
-
+    image_handle_t background_image = tumDrawLoadImage("../resources/images/lobby_cheat.png");
 
 	while(1){
 
@@ -960,7 +996,15 @@ void vDraw_Lobby_Cheat(void *pvParameters){
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-				checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+
+				if(tumDrawLoadedImage(background_image, 0, 0))
+				{
+					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+					if (!tumGetTextSize((char *)cheatMode_string,&cheatMode_string_width, NULL))
+						tumDrawText(cheatMode_string,SCREEN_WIDTH/2-cheatMode_string_width/2,
+									SCREEN_HEIGHT*1/9-DEFAULT_FONT_SIZE /2, Black);
+				}
+
 
 				get_game_wrapper_flags(&game_wrapper_infinite_life_flag, &game_wrapper_set_score_flag);
 
@@ -986,12 +1030,6 @@ void vDraw_Lobby_Cheat(void *pvParameters){
 				{
 					if (!tumDrawFilledBox(inflife_button->x_pos, inflife_button->y_pos, inflife_button->width, inflife_button->height, inflife_button->color)){} //Draw Box.
 				}
-
-
-				if (!tumGetTextSize((char *)cheatMode_string,&cheatMode_string_width, NULL))
-					tumDrawText(cheatMode_string,SCREEN_WIDTH/2-cheatMode_string_width/2,
-								SCREEN_HEIGHT*1/9-DEFAULT_FONT_SIZE /2, Black);
-
 
 				unsigned int color_100 = White;
 				unsigned int color_1000 = White;
@@ -1069,6 +1107,7 @@ void vDraw_Lobby_Highscore(void *pvParameters){
 	// draw back button
     my_square_t* back_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2,  SCREEN_HEIGHT*5/6 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
 
+    image_handle_t background_image = tumDrawLoadImage("../resources/images/lobby_highscore.png");
 
 	while(1){
 
@@ -1080,19 +1119,25 @@ void vDraw_Lobby_Highscore(void *pvParameters){
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-				checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+
+				if(tumDrawLoadedImage(background_image, 0, 0))
+				{
+					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+					if (!tumGetTextSize((char *)highscoreText_string,&highscoreText_string_width, NULL))
+						tumDrawText(highscoreText_string,SCREEN_WIDTH/2-highscoreText_string_width/2,
+									SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
+				}
+
 
 				if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
 
-				int font_size =  40;
 
-				if (!tumGetTextSize((char *)highscoreText_string,&highscoreText_string_width, &font_size))
-					tumDrawText(highscoreText_string,SCREEN_WIDTH/2-highscoreText_string_width/2,
-								SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
+
+
 
 				if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
 					tumDrawText(highscore_string, SCREEN_WIDTH/2-highscore_string_width/2,
-								SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Black);
+								SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Green);
 
 				if (!tumGetTextSize((char *)back_string,&back_string_width, NULL))
 					tumDrawText(back_string,back_button->x_pos + LOBBY_BUTTON_WIDTH/2-back_string_width/2,
@@ -1143,7 +1188,10 @@ void draw_pause_resume()
 	}
 
 	if (!tumGetTextSize((char *)pause_resumeText_string, &pause_resumeText_string_width, NULL))
-		tumDrawText(pause_resumeText_string, SCREEN_WIDTH*9/10 - pause_resumeText_string_width/2, SCREEN_HEIGHT/20 - DEFAULT_FONT_SIZE /2, White);
+	{
+		tumDrawText(pause_resumeText_string, SCREEN_WIDTH*19/20 - pause_resumeText_string_width, SCREEN_HEIGHT/20 - DEFAULT_FONT_SIZE /2, White);
+	}
+
 }
 
 void draw_quit()
@@ -1156,7 +1204,7 @@ void draw_quit()
 
 
 	if (!tumGetTextSize((char *)quitText_string, &quitText_string_width, NULL))
-		tumDrawText(quitText_string, SCREEN_WIDTH*9/10 - quitText_string_width/2, SCREEN_HEIGHT*2/20 - DEFAULT_FONT_SIZE /2, White);
+		tumDrawText(quitText_string, SCREEN_WIDTH*19/20 - quitText_string_width, SCREEN_HEIGHT*2/20 - DEFAULT_FONT_SIZE /2, White);
 }
 
 void draw_level()
@@ -1176,14 +1224,18 @@ void draw_level()
 }
 
 
-void draw_lifes(my_square_t* life_shape)
+void draw_lifes(my_square_t* life_shape, image_handle_t life_image)
 {
 	// get lifes
 	if (xSemaphoreTake(game_wrapper.lock, 0) == pdTRUE)
 	{
 		for(unsigned char u = 0; u < game_wrapper.remaining_life; u++)
 		{
-			if (!tumDrawFilledBox( SCREEN_WIDTH/30 - LIFE_SIZE_X/2 + u * (LIFE_SIZE_X/2 + LIFE_SIZE_DISTANCE),  SCREEN_HEIGHT*29/30 - LIFE_SIZE_Y/2 , LIFE_SIZE_X, LIFE_SIZE_Y, Red)){}
+			if(tumDrawLoadedImage(life_image, SCREEN_WIDTH/30 - LIFE_SIZE_X/2 + u * (LIFE_SIZE_X/2 + LIFE_SIZE_DISTANCE), SCREEN_HEIGHT*29/30 - LIFE_SIZE_Y/2))
+			{
+				if (!tumDrawFilledBox( SCREEN_WIDTH/30 - LIFE_SIZE_X/2 + u * (LIFE_SIZE_X/2 + LIFE_SIZE_DISTANCE),  SCREEN_HEIGHT*29/30 - LIFE_SIZE_Y/2 , LIFE_SIZE_X, LIFE_SIZE_Y, Red)){}
+
+			}
 		}
 
 		xSemaphoreGive(game_wrapper.lock);
@@ -1465,6 +1517,8 @@ void vDraw_Game(void *pvParameters){
     image_handle_t alien_3_2_image = tumDrawLoadImage("../resources/images/alien_3_2.png");
     image_handle_t alien_bullet_image = tumDrawLoadImage("../resources/images/alien_bullet.png");
     image_handle_t mothership_image = tumDrawLoadImage("../resources/images/mothership.png");
+    image_handle_t life_image = tumDrawLoadImage("../resources/images/heart.png");
+    image_handle_t background_image = tumDrawLoadImage("../resources/images/background.png");
 
 	while(1){
 
@@ -1477,7 +1531,11 @@ void vDraw_Game(void *pvParameters){
 
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-				checkDraw(tumDrawClear(Black), __FUNCTION__); 	// Clear screen
+				if(tumDrawLoadedImage(background_image, 0, 0))
+				{
+					checkDraw(tumDrawClear(Black), __FUNCTION__); 	// Clear screen
+				}
+
 
 				draw_bunker(bunker_block_shape, bunker_block_worse_image, bunker_block_bad_image, bunker_block_good_image);
 				draw_Invaders(&swap_state, alien_shape, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
@@ -1489,7 +1547,7 @@ void vDraw_Game(void *pvParameters){
 				draw_level();
 				draw_pause_resume();
 				draw_quit();
-				draw_lifes(life_shape);
+				draw_lifes(life_shape,life_image);
 
 				xSemaphoreGive(ScreenLock);
 			}
