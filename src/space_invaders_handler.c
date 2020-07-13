@@ -203,26 +203,7 @@ unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
     return 0;
 }
 
-void get_highscore(short * highscore)
-{
-	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
-	{
-		*highscore = game_wrapper.highscore;
 
-		xSemaphoreGive(game_wrapper.lock);
-	}
-}
-
-
-void get_game_wrapper_flags(unsigned char* game_wrapper_infinite_life_flag, unsigned char* game_wrapper_set_score_flag)
-{
-	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
-	{
-		*game_wrapper_infinite_life_flag = game_wrapper.infinite_life_flag;
-		*game_wrapper_set_score_flag = game_wrapper.set_score_flag;
-		xSemaphoreGive(game_wrapper.lock);
-	}
-}
 
 
 void set_score_flag(unsigned char score_value_flag)

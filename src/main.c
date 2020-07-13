@@ -56,10 +56,10 @@ SemaphoreHandle_t ScreenLock = NULL;
 
 
 // State2
-static TaskHandle_t Draw_Lobby_Main = NULL;
-static TaskHandle_t Draw_Lobby_Cheat = NULL;
-static TaskHandle_t Draw_Lobby_Highscore = NULL;
-static TaskHandle_t Draw_Game = NULL;
+static TaskHandle_t DrawLobbyMainTask = NULL;
+static TaskHandle_t DrawLobbyCheatTask = NULL;
+static TaskHandle_t DrawLobbyHighscoreTask = NULL;
+static TaskHandle_t DrawGameTask = NULL;
 static TaskHandle_t Swap_Invaders = NULL;
 static TaskHandle_t Let_Alien_Shoot = NULL;
 
@@ -223,56 +223,56 @@ initial_state:
             switch (current_state) {
                 case STATE_ONE:
                 	give_all_sempaphores();
-                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
-                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
-                    if (Draw_Game) vTaskSuspend(Draw_Game);
+                    if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
+                    if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
+                    if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
-                    if (Draw_Lobby_Main) vTaskResume(Draw_Lobby_Main);
+                    if (DrawLobbyMainTask) vTaskResume(DrawLobbyMainTask);
                     state_changed = 0;
 
                     break;
                 case STATE_TWO:
                 	give_all_sempaphores();
-                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
-                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
-                    if (Draw_Game) vTaskSuspend(Draw_Game);
+                    if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
+                    if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
+                    if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
-                    if (Draw_Lobby_Cheat) vTaskResume(Draw_Lobby_Cheat);
+                    if (DrawLobbyCheatTask) vTaskResume(DrawLobbyCheatTask);
                     state_changed = 0;
 
                     break;
                 case STATE_THREE:
                 	give_all_sempaphores();
-                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
-                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
-                    if (Draw_Game) vTaskSuspend(Draw_Game);
+                    if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
+                    if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
+                    if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
                     if (Init_Game) vTaskSuspend(Init_Game);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
-                    if (Draw_Lobby_Highscore) vTaskResume(Draw_Lobby_Highscore);
+                    if (DrawLobbyHighscoreTask) vTaskResume(DrawLobbyHighscoreTask);
                     state_changed = 0;
 
                     break;
 
                 case STATE_FOUR:
                 	give_all_sempaphores();
-                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
-                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
-                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
+                    if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
+                    if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
+                    if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
                     if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
-                    if (Draw_Game) vTaskSuspend(Draw_Game);
+                    if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
                     if (Init_Game) vTaskResume(Init_Game);
                     state_changed = 0;
@@ -285,10 +285,10 @@ initial_state:
                 	prints("hey i am in state 5 (gamestate)\n");
                 	// fflush(stdout);
 //                	if (Init_Game) vTaskSuspend(Init_Game);
-                    if (Draw_Lobby_Main) vTaskSuspend(Draw_Lobby_Main);
-                    if (Draw_Lobby_Cheat) vTaskSuspend(Draw_Lobby_Cheat);
-                    if (Draw_Lobby_Highscore) vTaskSuspend(Draw_Lobby_Highscore);
-                    if (Draw_Game) vTaskResume(Draw_Game);
+                    if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
+                    if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
+                    if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
+                    if (DrawGameTask) vTaskResume(DrawGameTask);
                     if (Game_Handler) vTaskResume(Game_Handler);
                     if (Swap_Invaders) vTaskResume(Swap_Invaders);
                     if (Let_Alien_Shoot) vTaskResume(Let_Alien_Shoot);
@@ -785,7 +785,7 @@ void vDraw_pop_up_page(void *pvParameters)
 
 	while(1)
 	{
-		if (Draw_Game) vTaskSuspend(Draw_Game);
+		if (DrawGameTask) vTaskSuspend(DrawGameTask);
 
 		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 		{
@@ -844,28 +844,86 @@ void vDraw_pop_up_page(void *pvParameters)
 	}
 }
 
-
-void vDraw_Lobby_Main(void *pvParameters){
-
-	unsigned char mothership_AI_control = 0;
-
-	static char spaceInvaders_string[100];
-	static int spaceInvaders_string_width = 0;
+void vDrawPlayButton(my_square_t* play_button)
+{
 	static char play_string[100];
 	static int play_string_width = 0;
+
+	sprintf(play_string, "PLAY [P]");
+
+	tumDrawFilledBox(play_button->x_pos, play_button->y_pos, play_button->width, play_button->height, play_button->color);
+
+	if (!tumGetTextSize((char *)play_string,&play_string_width, NULL))
+		tumDrawText(play_string,play_button->x_pos + LOBBY_BUTTON_WIDTH/2-play_string_width/2,
+					play_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+}
+
+void vDrawBackgroundImage(image_handle_t background_image)
+{
+	if(tumDrawLoadedImage(background_image, 0, 0))
+	{
+		static char background_string[100];
+		static int background_string_width = 0;
+
+		sprintf(background_string, "*** background image missing ***");
+
+		checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+
+		if (!tumGetTextSize((char *)background_string,&background_string_width, NULL))
+			tumDrawText(background_string,SCREEN_WIDTH/2-background_string_width/2,
+						SCREEN_HEIGHT*1/9-DEFAULT_FONT_SIZE /2, Black);
+	}
+}
+
+void vDrawCheatButton(my_square_t* cheat_button)
+{
 	static char cheat_string[100];
 	static int cheat_string_width = 0;
+
+	sprintf(cheat_string, "CHEAT [C]");
+
+	tumDrawFilledBox(cheat_button->x_pos, cheat_button->y_pos, cheat_button->width, cheat_button->height, cheat_button->color);
+
+	if (!tumGetTextSize((char *)cheat_string,&cheat_string_width, NULL))
+		tumDrawText(cheat_string,cheat_button->x_pos + LOBBY_BUTTON_WIDTH/2-cheat_string_width/2,
+					cheat_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+}
+
+void vDrawHighscoreButton(my_square_t* highscore_button)
+{
 	static char highscore_string[100];
 	static int highscore_string_width = 0;
+
+	sprintf(highscore_string, "HIGHSCORE [H]");
+
+	tumDrawFilledBox(highscore_button->x_pos, highscore_button->y_pos, highscore_button->width, highscore_button->height, highscore_button->color);
+
+	if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
+		tumDrawText(highscore_string,highscore_button->x_pos + LOBBY_BUTTON_WIDTH/2-highscore_string_width/2,
+					highscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
+}
+
+void vDrawTwoPlayerButton(my_square_t* two_player_mode_button, unsigned char mothership_AI_control)
+{
 	static char two_player_mode_string[100];
 	static int two_player_mode_string_width = 0;
 
-
-	sprintf(spaceInvaders_string, "SPACE INVADERS");
-	sprintf(play_string, "PLAY [P]");
-	sprintf(cheat_string, "CHEAT [C]");
-	sprintf(highscore_string, "HIGHSCORE [H]");
 	sprintf(two_player_mode_string, "TWO PLAYER (AI-MODE) [A]");
+
+	if(mothership_AI_control)
+		tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Green);
+	else
+		tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Black);
+
+	if (!tumGetTextSize((char *)two_player_mode_string,&two_player_mode_string_width, NULL))
+		tumDrawText(two_player_mode_string,two_player_mode_button->x_pos + LOBBY_BUTTON_WIDTH/2-two_player_mode_string_width/2,
+					two_player_mode_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
+
+}
+
+void vDrawLobbyMainTask(void *pvParameters){
+
+	unsigned char mothership_AI_control = 0;
 
 	// create buttons
     my_square_t* play_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*3/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
@@ -873,10 +931,16 @@ void vDraw_Lobby_Main(void *pvParameters){
     my_square_t* highscore_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*5/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
     my_square_t* two_player_mode_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*6/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
 
-
     image_handle_t background_image = tumDrawLoadImage("../resources/images/lobby_main.png");
 
 	while(1){
+
+		if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
+		{
+			mothership_AI_control = mothership.AI_control;
+
+			xSemaphoreGive(mothership.lock);
+		}
 
 		// draw
 		if (DrawSignal)
@@ -884,99 +948,131 @@ void vDraw_Lobby_Main(void *pvParameters){
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-				if(tumDrawLoadedImage(background_image, 0, 0))
-				{
-					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
-					if (!tumGetTextSize((char *)spaceInvaders_string,&spaceInvaders_string_width, NULL))
-						tumDrawText(spaceInvaders_string,SCREEN_WIDTH/2-spaceInvaders_string_width/2,
-									SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
-				}
-
-				if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
-				{
-
-					mothership_AI_control = mothership.AI_control;
-
-					xSemaphoreGive(mothership.lock);
-				}
-
-//				// draw static text and buttons
-//				drawText_State1(play_button, cheat_button, highscore_button);
-				// draw button fields
-				if (!tumDrawFilledBox(play_button->x_pos, play_button->y_pos, play_button->width, play_button->height, play_button->color)){} //Draw Box.
-				if (!tumDrawFilledBox(cheat_button->x_pos, cheat_button->y_pos, cheat_button->width, cheat_button->height, cheat_button->color)){} //Draw Box.
-				if (!tumDrawFilledBox(highscore_button->x_pos, highscore_button->y_pos, highscore_button->width, highscore_button->height, highscore_button->color)){} //Draw Box.
-
-				if(mothership_AI_control)
-				{
-					if (!tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Green)){} //Draw Box.
-				}
-				else{
-					if (!tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Black)){} //Draw Box.
-
-				}
-
-				// draw button text
-
-				if (!tumGetTextSize((char *)play_string,&play_string_width, NULL))
-					tumDrawText(play_string,play_button->x_pos + LOBBY_BUTTON_WIDTH/2-play_string_width/2,
-								play_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
-				if (!tumGetTextSize((char *)cheat_string,&cheat_string_width, NULL))
-					tumDrawText(cheat_string,cheat_button->x_pos + LOBBY_BUTTON_WIDTH/2-cheat_string_width/2,
-								cheat_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
-				if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
-					tumDrawText(highscore_string,highscore_button->x_pos + LOBBY_BUTTON_WIDTH/2-highscore_string_width/2,
-								highscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
-				if (!tumGetTextSize((char *)two_player_mode_string,&two_player_mode_string_width, NULL))
-					tumDrawText(two_player_mode_string,two_player_mode_button->x_pos + LOBBY_BUTTON_WIDTH/2-two_player_mode_string_width/2,
-								two_player_mode_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
+				vDrawBackgroundImage(background_image);
+				vDrawTwoPlayerButton(two_player_mode_button, mothership_AI_control);
+				vDrawHighscoreButton(highscore_button);
+				vDrawCheatButton(cheat_button);
+				vDrawPlayButton(play_button);
 
 				xSemaphoreGive(ScreenLock);
 			}
-		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
 
+		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
 	}
 
 }
 
 
+void vDrawBackButton(my_square_t* back_button)
+{
+	static char back_string[100];
+	static int back_string_width = 0;
 
-void vDraw_Lobby_Cheat(void *pvParameters){
+	sprintf(back_string, "BACK [B]");
 
-	unsigned char game_wrapper_infinite_life_flag = 0;
-	unsigned char game_wrapper_set_score_flag = 0;
+	if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
 
-	short game_wrapper_level = 0;
+	if (!tumGetTextSize((char *)back_string, &back_string_width, NULL))
+		tumDrawText(back_string, back_button->x_pos + LOBBY_BUTTON_WIDTH / 2 - back_string_width / 2,
+					back_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE / 2, White);
 
-	static char cheatMode_string[100];
-	static int cheatMode_string_width = 0;
-	static char inflife_string[100];
-	static int inflife_string_width = 0;
-	static char setscore_string[100];
-	static int setscore_string_width = 0;
+}
+
+
+
+void vDrawSetLevelButton(my_square_t* setlevel_button, short game_wrapper_level)
+{
 	static char setlevel_string[100];
 	static int setlevel_string_width = 0;
+
+	sprintf(setlevel_string, "SET LEVEL: %d [UP] [DOWN]", game_wrapper_level + 1);
+
+	if(game_wrapper_level == 0)
+		tumDrawFilledBox(setlevel_button->x_pos, setlevel_button->y_pos, setlevel_button->width, setlevel_button->height, Grey);
+	else
+		tumDrawFilledBox(setlevel_button->x_pos, setlevel_button->y_pos, setlevel_button->width, setlevel_button->height, Green);
+
+	if (!tumGetTextSize((char *)setlevel_string,&setlevel_string_width, NULL))
+		tumDrawText(setlevel_string,setlevel_button->x_pos + LOBBY_BUTTON_WIDTH/2-setlevel_string_width/2,
+				setlevel_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+}
+
+void vDrawInfiniteLifeButton(my_square_t* inflife_button, unsigned char game_wrapper_infinite_life_flag)
+{
+	static char inflife_string[100];
+	static int inflife_string_width = 0;
+
+	sprintf(inflife_string, "INFINITE LIFES [L]");
+
+	if(game_wrapper_infinite_life_flag)
+		tumDrawFilledBox(inflife_button->x_pos, inflife_button->y_pos, inflife_button->width, inflife_button->height, Green);
+	else
+		tumDrawFilledBox(inflife_button->x_pos, inflife_button->y_pos, inflife_button->width, inflife_button->height, inflife_button->color);
+
+	if (!tumGetTextSize((char *)inflife_string,&inflife_string_width, NULL))
+		tumDrawText(inflife_string,inflife_button->x_pos + LOBBY_BUTTON_WIDTH/2-inflife_string_width/2,
+				inflife_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+}
+
+void vDrawSetScoreButton(my_square_t* setscore_button, unsigned char game_wrapper_set_score_flag)
+{
+	static char setscore_string[100];
+	static int setscore_string_width = 0;
 	static char one_hundred_string[100];
 	static int one_hundred_string_width = 0;
 	static char one_thousand_string[100];
 	static int one_thousand_string_width = 0;
 	static char ten_thousand_string[100];
 	static int ten_thousand_string_width = 0;
-	static char play_string[100];
-	static int play_string_width = 0;
-	static char back_string[100];
-	static int back_string_width = 0;
 
 	sprintf(one_hundred_string, "100 [T]");
 	sprintf(one_thousand_string, "1000 [K]");
 	sprintf(ten_thousand_string, "10000 [U]");
 	sprintf(setscore_string, "SET SCORE:");
-	sprintf(inflife_string, "INFINITE LIFES [L]");
-	sprintf(cheatMode_string, "CHEAT MODE");
-	sprintf(play_string, "PLAY [P]");
-	sprintf(back_string, "BACK [B]");
 
-	// create buttons
+	unsigned int color_100 = White;
+	unsigned int color_1000 = White;
+	unsigned int color_10000 = White;
+
+	if(game_wrapper_set_score_flag == 1)
+		color_100 = Green;
+	else if(game_wrapper_set_score_flag == 2)
+		color_1000 = Green;
+	else if(game_wrapper_set_score_flag == 3)
+		color_10000 = Green;
+
+	tumDrawFilledBox(setscore_button->x_pos, setscore_button->y_pos, setscore_button->width, setscore_button->height, Grey);
+
+	if (!tumGetTextSize((char *)one_hundred_string,&one_hundred_string_width, NULL))
+		tumDrawText(one_hundred_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH*1/4 - one_hundred_string_width/2,
+					setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2 + LOBBY_BUTTON_HEIGHT*2/3, color_100);
+
+	if (!tumGetTextSize((char *)one_thousand_string,&one_thousand_string_width, NULL))
+		tumDrawText(one_thousand_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH*2/4 - one_thousand_string_width/2,
+					setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2 + LOBBY_BUTTON_HEIGHT*2/3, color_1000);
+
+	if (!tumGetTextSize((char *)ten_thousand_string,&ten_thousand_string_width, NULL))
+		tumDrawText(ten_thousand_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH*3/4 - ten_thousand_string_width/2,
+					setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2 + LOBBY_BUTTON_HEIGHT*2/3, color_10000);
+
+
+	if (!tumGetTextSize((char *)setscore_string,&setscore_string_width, NULL))
+		tumDrawText(setscore_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH/2-setscore_string_width/2,
+				setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+
+
+
+}
+
+
+
+void vDrawLobbyCheatTask(void *pvParameters){
+
+	short game_wrapper_level = 0;
+	unsigned char game_wrapper_infinite_life_flag = 0;
+	unsigned char game_wrapper_set_score_flag = 0;
+
+	// create button fields
 	my_square_t* setscore_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*2/9 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT *2 ,Grey);
 	my_square_t* inflife_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*5/9 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Grey);
     my_square_t* play_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*7/9 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
@@ -989,13 +1085,13 @@ void vDraw_Lobby_Cheat(void *pvParameters){
 
 		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 		{
-
 			game_wrapper_level = game_wrapper.level;
+			game_wrapper_infinite_life_flag = game_wrapper.infinite_life_flag;
+			game_wrapper_set_score_flag = game_wrapper.set_score_flag;
 
 			xSemaphoreGive(game_wrapper.lock);
 		}
 
-		sprintf(setlevel_string, "SET LEVEL: %d [UP] [DOWN]", game_wrapper_level + 1);
 
 		//draw
 		if (DrawSignal)
@@ -1003,113 +1099,38 @@ void vDraw_Lobby_Cheat(void *pvParameters){
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-
-				if(tumDrawLoadedImage(background_image, 0, 0))
-				{
-					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
-					if (!tumGetTextSize((char *)cheatMode_string,&cheatMode_string_width, NULL))
-						tumDrawText(cheatMode_string,SCREEN_WIDTH/2-cheatMode_string_width/2,
-									SCREEN_HEIGHT*1/9-DEFAULT_FONT_SIZE /2, Black);
-				}
-
-
-				get_game_wrapper_flags(&game_wrapper_infinite_life_flag, &game_wrapper_set_score_flag);
-
-				if (!tumDrawFilledBox(play_button->x_pos, play_button->y_pos, play_button->width, play_button->height, play_button->color)){} //Draw Box.
-				if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
-				if (!tumDrawFilledBox(setscore_button->x_pos, setscore_button->y_pos, setscore_button->width, setscore_button->height, setscore_button->color)){} //Draw Box.
-
-				if(game_wrapper_level == 0)
-				{
-					if (!tumDrawFilledBox(setlevel_button->x_pos, setlevel_button->y_pos, setlevel_button->width, setlevel_button->height, Grey)){} //Draw Box.
-				}
-				else
-				{
-					if (!tumDrawFilledBox(setlevel_button->x_pos, setlevel_button->y_pos, setlevel_button->width, setlevel_button->height, Green)){} //Draw Box.
-				}
-
-
-				if(game_wrapper_infinite_life_flag)
-				{
-					if (!tumDrawFilledBox(inflife_button->x_pos, inflife_button->y_pos, inflife_button->width, inflife_button->height, Green)){} //Draw Box.
-				}
-				else
-				{
-					if (!tumDrawFilledBox(inflife_button->x_pos, inflife_button->y_pos, inflife_button->width, inflife_button->height, inflife_button->color)){} //Draw Box.
-				}
-
-				unsigned int color_100 = White;
-				unsigned int color_1000 = White;
-				unsigned int color_10000 = White;
-
-				if(game_wrapper_set_score_flag == 1)
-				{
-					color_100 = Green;
-				}
-				if(game_wrapper_set_score_flag == 2)
-				{
-					color_1000 = Green;
-				}
-				if(game_wrapper_set_score_flag == 3)
-				{
-					color_10000 = Green;
-				}
-
-				if (!tumGetTextSize((char *)one_hundred_string,&one_hundred_string_width, NULL))
-					tumDrawText(one_hundred_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH*1/4 - one_hundred_string_width/2,
-								setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2 + LOBBY_BUTTON_HEIGHT*2/3, color_100);
-
-				if (!tumGetTextSize((char *)one_thousand_string,&one_thousand_string_width, NULL))
-					tumDrawText(one_thousand_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH*2/4 - one_thousand_string_width/2,
-								setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2 + LOBBY_BUTTON_HEIGHT*2/3, color_1000);
-
-				if (!tumGetTextSize((char *)ten_thousand_string,&ten_thousand_string_width, NULL))
-					tumDrawText(ten_thousand_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH*3/4 - ten_thousand_string_width/2,
-								setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2 + LOBBY_BUTTON_HEIGHT*2/3, color_10000);
-
-
-				if (!tumGetTextSize((char *)setscore_string,&setscore_string_width, NULL))
-					tumDrawText(setscore_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH/2-setscore_string_width/2,
-							setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
-
-				if (!tumGetTextSize((char *)setlevel_string,&setlevel_string_width, NULL))
-					tumDrawText(setlevel_string,setlevel_button->x_pos + LOBBY_BUTTON_WIDTH/2-setlevel_string_width/2,
-							setlevel_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
-
-				if (!tumGetTextSize((char *)inflife_string,&inflife_string_width, NULL))
-					tumDrawText(inflife_string,inflife_button->x_pos + LOBBY_BUTTON_WIDTH/2-inflife_string_width/2,
-							inflife_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
-
-				if (!tumGetTextSize((char *)play_string,&play_string_width, NULL))
-					tumDrawText(play_string,play_button->x_pos + LOBBY_BUTTON_WIDTH/2-play_string_width/2,
-								play_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
-
-				if (!tumGetTextSize((char *)back_string,&back_string_width, NULL))
-					tumDrawText(back_string,back_button->x_pos + LOBBY_BUTTON_WIDTH/2-back_string_width/2,
-								back_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+				vDrawBackgroundImage(background_image);
+				vDrawSetScoreButton(setscore_button, game_wrapper_set_score_flag);
+				vDrawInfiniteLifeButton(inflife_button, game_wrapper_infinite_life_flag);
+				vDrawSetLevelButton(setlevel_button, game_wrapper_level);
+				vDrawPlayButton(play_button);
+				vDrawBackButton(back_button);
 
 				xSemaphoreGive(ScreenLock);
 			}
-		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
 
+		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
 	}
 
 }
 
 
-void vDraw_Lobby_Highscore(void *pvParameters){
-
-	static char highscoreText_string[100];
-	static int highscoreText_string_width = 0;
-	static char back_string[100];
-	static int back_string_width = 0;
+void vDrawHighscore(short highscore)
+{
 	static char highscore_string[100];
 	static int highscore_string_width = 0;
 
-	short highscore = 0;
+	sprintf(highscore_string, "%d", highscore);
 
-	sprintf(highscoreText_string, "HIGHSCORE");
-	sprintf(back_string, "BACK [B]");
+	if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
+		tumDrawText(highscore_string, SCREEN_WIDTH/2-highscore_string_width/2,
+					SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Green);
+}
+
+
+void vDrawLobbyHighscoreTask(void *pvParameters){
+
+	short highscore = 0;
 
 	// draw back button
     my_square_t* back_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2,  SCREEN_HEIGHT*5/6 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
@@ -1118,44 +1139,27 @@ void vDraw_Lobby_Highscore(void *pvParameters){
 
 	while(1){
 
-		get_highscore(&highscore);
-		sprintf(highscore_string, "%d", highscore);
+		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
+		{
+			highscore = game_wrapper.highscore;
+
+			xSemaphoreGive(game_wrapper.lock);
+		}
 
 		if (DrawSignal)
 			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-
-				if(tumDrawLoadedImage(background_image, 0, 0))
-				{
-					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
-					if (!tumGetTextSize((char *)highscoreText_string,&highscoreText_string_width, NULL))
-						tumDrawText(highscoreText_string,SCREEN_WIDTH/2-highscoreText_string_width/2,
-									SCREEN_HEIGHT/4-DEFAULT_FONT_SIZE /2, Black);
-				}
-
-
-				if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
-
-
-
-
-
-				if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
-					tumDrawText(highscore_string, SCREEN_WIDTH/2-highscore_string_width/2,
-								SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Green);
-
-				if (!tumGetTextSize((char *)back_string,&back_string_width, NULL))
-					tumDrawText(back_string,back_button->x_pos + LOBBY_BUTTON_WIDTH/2-back_string_width/2,
-								back_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
+				vDrawBackgroundImage(background_image);
+				vDrawHighscore(highscore);
+				vDrawBackButton(back_button);
 
 				xSemaphoreGive(ScreenLock);
 			}
+
 		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
-
 	}
-
 }
 
 void draw_score()
@@ -1487,7 +1491,7 @@ void draw_bunker(my_square_t* bunker_block_shape, image_handle_t bunker_block_wo
 }
 
 
-void vDraw_Game(void *pvParameters){
+void vDrawGameTask(void *pvParameters){
 
 	unsigned char player_bullet_alive = 0;
 	unsigned char aliens_bullet_alive = 0;
@@ -1722,32 +1726,32 @@ int main(int argc, char *argv[])
 
 
 
-    if (xTaskCreate(vDraw_Lobby_Main, "Draw_Lobby_Main",
+    if (xTaskCreate(vDrawLobbyMainTask, "DrawLobbyMainTask",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_Lobby_Main) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_Lobby_Main");
-        goto err_Draw_Lobby_Main;
+    						&DrawLobbyMainTask) != pdPASS) {
+        PRINT_TASK_ERROR("DrawLobbyMainTask");
+        goto err_DrawLobbyMainTask;
     }
 
-    if (xTaskCreate(vDraw_Lobby_Cheat, "Draw_Lobby_Cheat",
+    if (xTaskCreate(vDrawLobbyCheatTask, "DrawLobbyCheatTask",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_Lobby_Cheat) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_Lobby_Cheat");
-        goto err_Draw_Lobby_Cheat;
+    						&DrawLobbyCheatTask) != pdPASS) {
+        PRINT_TASK_ERROR("DrawLobbyCheatTask");
+        goto err_DrawLobbyCheatTask;
     }
 
-    if (xTaskCreate(vDraw_Lobby_Highscore, "Draw_Lobby_Highscore",
+    if (xTaskCreate(vDrawLobbyHighscoreTask, "DrawLobbyHighscoreTask",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_Lobby_Highscore) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_Lobby_Highscore");
-        goto err_Draw_Lobby_Highscore;
+    						&DrawLobbyHighscoreTask) != pdPASS) {
+        PRINT_TASK_ERROR("DrawLobbyHighscoreTask");
+        goto err_DrawLobbyHighscoreTask;
     }
 
-    if (xTaskCreate(vDraw_Game, "Draw_Game",
+    if (xTaskCreate(vDrawGameTask, "DrawGameTask",
     						mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_Game) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_Game");
-        goto err_Draw_Game;
+    						&DrawGameTask) != pdPASS) {
+        PRINT_TASK_ERROR("DrawGameTask");
+        goto err_DrawGameTask;
     }
 
 
@@ -1770,10 +1774,10 @@ int main(int argc, char *argv[])
     init_space_invaders_handler();
 
 
-    vTaskSuspend(Draw_Lobby_Main);
-    vTaskSuspend(Draw_Lobby_Cheat);
-    vTaskSuspend(Draw_Lobby_Highscore);
-    vTaskSuspend(Draw_Game);
+    vTaskSuspend(DrawLobbyMainTask);
+    vTaskSuspend(DrawLobbyCheatTask);
+    vTaskSuspend(DrawLobbyHighscoreTask);
+    vTaskSuspend(DrawGameTask);
     vTaskSuspend(Swap_Invaders);
     vTaskSuspend(Let_Alien_Shoot);
 
@@ -1784,14 +1788,14 @@ int main(int argc, char *argv[])
 
 
 
-	vTaskDelete(Draw_Lobby_Main);
-err_Draw_Lobby_Main:
-	vTaskDelete(Draw_Lobby_Cheat);
-err_Draw_Lobby_Cheat:
-	vTaskDelete(Draw_Lobby_Highscore);
-err_Draw_Lobby_Highscore:
-	vTaskDelete(Draw_Game);
-err_Draw_Game:
+	vTaskDelete(DrawLobbyMainTask);
+err_DrawLobbyMainTask:
+	vTaskDelete(DrawLobbyCheatTask);
+err_DrawLobbyCheatTask:
+	vTaskDelete(DrawLobbyHighscoreTask);
+err_DrawLobbyHighscoreTask:
+	vTaskDelete(DrawGameTask);
+err_DrawGameTask:
 	vTaskDelete(Swap_Invaders);
 err_Swap_Invaders:
 	vTaskDelete(Let_Alien_Shoot);
