@@ -31,6 +31,7 @@
 
 static QueueHandle_t PlayerXQueue = NULL;
 static QueueHandle_t MothershipXQueue = NULL;
+static QueueHandle_t PlayerBulletModeXQueue = NULL;
 static QueueHandle_t NextKeyQueue = NULL;
 //static QueueHandle_t GameMessageQueue = NULL;
 
@@ -45,6 +46,7 @@ TaskHandle_t Draw_pop_up_page = NULL;
 aIO_handle_t udp_soc_receive = NULL, udp_soc_transmit = NULL;
 
 typedef enum { NONE = 0, INC = 1, DEC = -1 } opponent_cmd_t;
+typedef enum { PASSIVE = 0, ATTACKING = 1} player_bullet_status_t;
 
 
 
@@ -106,6 +108,8 @@ void vUDPControlTask(void *pvParameters)
     in_port_t port = UDP_RECEIVE_PORT;
     unsigned int player_x = 0;
     unsigned int mothership_x = 0;
+    player_bullet_status_t player_bullet_status = 0;
+    player_bullet_status_t last_player_bullet_status = -1;
 //    char last_difficulty = -1;
 //    char difficulty = 1;
 
@@ -121,6 +125,8 @@ void vUDPControlTask(void *pvParameters)
         while (xQueueReceive(PlayerXQueue, &player_x, 0) == pdTRUE) {
         }
         while (xQueueReceive(MothershipXQueue, &mothership_x, 0) == pdTRUE) {
+        }
+        while (xQueueReceive(PlayerBulletModeXQueue, &player_bullet_status, 0) == pdTRUE) {
         }
 //        while (xQueueReceive(DifficultyQueue, &difficulty, 0) == pdTRUE) {
 //        }
@@ -141,8 +147,22 @@ void vUDPControlTask(void *pvParameters)
 
 //        prints("send buf: %s\n",buf);
 
+        // send player bullet status
+        if(player_bullet_status != last_player_bullet_status)
+        {
+        	if(player_bullet_status == ATTACKING)
+        	{
+        		sprintf(buf, "ATTACKING");
+        	}
+        	else if(player_bullet_status == PASSIVE)
+        	{
+        		sprintf(buf, "PASSIVE");
+        	}
 
-
+            aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
+                         strlen(buf));
+            last_player_bullet_status = player_bullet_status;
+        }
 
 //        if (last_difficulty != difficulty) {
 //            sprintf(buf, "D%d", difficulty + 1);
@@ -619,6 +639,17 @@ void handle_player_input(unsigned char* moving_left, unsigned char* moving_right
 		if(*moving_right) player.pos_x += PLAYER_SPEED;
 
 
+		player_bullet_status_t bullet_status = 0;
+
+		if(player.bullet.alive)
+		{
+			bullet_status = ATTACKING;
+		}
+		else
+		{
+			bullet_status = PASSIVE;
+		}
+		xQueueSend(PlayerBulletModeXQueue, &bullet_status, 0);
 
 		move_player_bullet(&player.bullet, BULLET_SPEED);
 
@@ -1425,6 +1456,10 @@ int init_space_invaders_handler(void)
     }
     MothershipXQueue = xQueueCreate(5, sizeof(short));
     if (!MothershipXQueue) {
+        exit(EXIT_FAILURE);
+    }
+    PlayerBulletModeXQueue = xQueueCreate(5, sizeof(player_bullet_status_t));
+    if (!PlayerBulletModeXQueue) {
         exit(EXIT_FAILURE);
     }
 //    GameMessageQueue = xQueueCreate(5, sizeof(game_messages_t));
