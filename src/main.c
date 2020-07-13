@@ -60,8 +60,8 @@ static TaskHandle_t DrawLobbyMainTask = NULL;
 static TaskHandle_t DrawLobbyCheatTask = NULL;
 static TaskHandle_t DrawLobbyHighscoreTask = NULL;
 static TaskHandle_t DrawGameTask = NULL;
-static TaskHandle_t Swap_Invaders = NULL;
-static TaskHandle_t Let_Alien_Shoot = NULL;
+static TaskHandle_t SwapInvadersTask = NULL;
+static TaskHandle_t AlienShootTask = NULL;
 
 
 typedef struct state {
@@ -227,8 +227,8 @@ initial_state:
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
-                    if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
-                    if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
+                    if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
+                    if (AlienShootTask) vTaskSuspend(AlienShootTask);
                     if (Init_Game) vTaskSuspend(Init_Game);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (DrawLobbyMainTask) vTaskResume(DrawLobbyMainTask);
@@ -241,8 +241,8 @@ initial_state:
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
-                    if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
-                    if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
+                    if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
+                    if (AlienShootTask) vTaskSuspend(AlienShootTask);
                     if (Init_Game) vTaskSuspend(Init_Game);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (DrawLobbyCheatTask) vTaskResume(DrawLobbyCheatTask);
@@ -255,8 +255,8 @@ initial_state:
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
-                    if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
-                    if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
+                    if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
+                    if (AlienShootTask) vTaskSuspend(AlienShootTask);
                     if (Init_Game) vTaskSuspend(Init_Game);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (DrawLobbyHighscoreTask) vTaskResume(DrawLobbyHighscoreTask);
@@ -270,8 +270,8 @@ initial_state:
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (Game_Handler) vTaskSuspend(Game_Handler);
-                    if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
-                    if (Let_Alien_Shoot) vTaskSuspend(Let_Alien_Shoot);
+                    if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
+                    if (AlienShootTask) vTaskSuspend(AlienShootTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
                     if (Init_Game) vTaskResume(Init_Game);
@@ -290,8 +290,8 @@ initial_state:
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskResume(DrawGameTask);
                     if (Game_Handler) vTaskResume(Game_Handler);
-                    if (Swap_Invaders) vTaskResume(Swap_Invaders);
-                    if (Let_Alien_Shoot) vTaskResume(Let_Alien_Shoot);
+                    if (SwapInvadersTask) vTaskResume(SwapInvadersTask);
+                    if (AlienShootTask) vTaskResume(AlienShootTask);
 
                     if(AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
 
@@ -434,7 +434,7 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 			    sprintf(buf, "PAUSE");
 		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 
-		        if (Swap_Invaders) vTaskSuspend(Swap_Invaders);
+		        if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
 		        if (Game_Handler) vTaskSuspend(Game_Handler);
 		        if (UDPControlTask) vTaskSuspend(UDPControlTask);
 
@@ -450,7 +450,7 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 			else if(*paused == 1)
 			{
                 if (Game_Handler) vTaskResume(Game_Handler);
-                if (Swap_Invaders) vTaskResume(Swap_Invaders);
+                if (SwapInvadersTask) vTaskResume(SwapInvadersTask);
                 if (UDPControlTask) vTaskResume(UDPControlTask);
 
 			    static char buf[50];
@@ -921,48 +921,6 @@ void vDrawTwoPlayerButton(my_square_t* two_player_mode_button, unsigned char mot
 
 }
 
-void vDrawLobbyMainTask(void *pvParameters){
-
-	unsigned char mothership_AI_control = 0;
-
-	// create buttons
-    my_square_t* play_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*3/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
-    my_square_t* cheat_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*4/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
-    my_square_t* highscore_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*5/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
-    my_square_t* two_player_mode_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*6/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
-
-    image_handle_t background_image = tumDrawLoadImage("../resources/images/lobby_main.png");
-
-	while(1){
-
-		if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
-		{
-			mothership_AI_control = mothership.AI_control;
-
-			xSemaphoreGive(mothership.lock);
-		}
-
-		// draw
-		if (DrawSignal)
-			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
-			{
-				xSemaphoreTake(ScreenLock, portMAX_DELAY);
-
-				vDrawBackgroundImage(background_image);
-				vDrawTwoPlayerButton(two_player_mode_button, mothership_AI_control);
-				vDrawHighscoreButton(highscore_button);
-				vDrawCheatButton(cheat_button);
-				vDrawPlayButton(play_button);
-
-				xSemaphoreGive(ScreenLock);
-			}
-
-		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
-	}
-
-}
-
-
 void vDrawBackButton(my_square_t* back_button)
 {
 	static char back_string[100];
@@ -1060,8 +1018,67 @@ void vDrawSetScoreButton(my_square_t* setscore_button, unsigned char game_wrappe
 		tumDrawText(setscore_string,setscore_button->x_pos + LOBBY_BUTTON_WIDTH/2-setscore_string_width/2,
 				setscore_button->y_pos + LOBBY_BUTTON_HEIGHT / 2 - DEFAULT_FONT_SIZE /2, White);
 
+}
 
 
+void vDrawHighscore(short highscore)
+{
+	static char highscore_string[100];
+	static int highscore_string_width = 0;
+
+	sprintf(highscore_string, "%d", highscore);
+
+	if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
+		tumDrawText(highscore_string, SCREEN_WIDTH/2-highscore_string_width/2,
+					SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Green);
+}
+
+
+
+
+
+void vDrawLobbyMainTask(void *pvParameters){
+
+	unsigned char mothership_AI_control = 0;
+
+	// create buttons
+    my_square_t* play_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*3/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* cheat_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*4/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* highscore_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*5/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+    my_square_t* two_player_mode_button=create_rect(SCREEN_WIDTH/2 - LOBBY_BUTTON_WIDTH/2, SCREEN_HEIGHT*6/7 - LOBBY_BUTTON_HEIGHT/2, LOBBY_BUTTON_WIDTH, LOBBY_BUTTON_HEIGHT,Black);
+
+    image_handle_t background_image = tumDrawLoadImage("../resources/images/lobby_main.png");
+
+	while(1){
+
+		if (DrawSignal)
+		{
+            if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
+            {
+    			if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
+    			{
+    				mothership_AI_control = mothership.AI_control;
+    				xSemaphoreGive(mothership.lock);
+    			}
+
+    			taskENTER_CRITICAL();
+
+				if(xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE)
+				{
+					vDrawBackgroundImage(background_image);
+					vDrawTwoPlayerButton(two_player_mode_button, mothership_AI_control);
+					vDrawHighscoreButton(highscore_button);
+					vDrawCheatButton(cheat_button);
+					vDrawPlayButton(play_button);
+				}
+				xSemaphoreGive(ScreenLock);
+
+				taskEXIT_CRITICAL();
+
+				vTaskDelay((TickType_t)100); // Basic sleep of 100ms
+            }
+		}
+	}
 }
 
 
@@ -1083,49 +1100,42 @@ void vDrawLobbyCheatTask(void *pvParameters){
 
 	while(1){
 
-		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
-		{
-			game_wrapper_level = game_wrapper.level;
-			game_wrapper_infinite_life_flag = game_wrapper.infinite_life_flag;
-			game_wrapper_set_score_flag = game_wrapper.set_score_flag;
-
-			xSemaphoreGive(game_wrapper.lock);
-		}
-
-
-		//draw
 		if (DrawSignal)
-			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
-			{
-				xSemaphoreTake(ScreenLock, portMAX_DELAY);
+		{
+            if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
+            {
+        		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
+        		{
+        			game_wrapper_level = game_wrapper.level;
+        			game_wrapper_infinite_life_flag = game_wrapper.infinite_life_flag;
+        			game_wrapper_set_score_flag = game_wrapper.set_score_flag;
 
-				vDrawBackgroundImage(background_image);
-				vDrawSetScoreButton(setscore_button, game_wrapper_set_score_flag);
-				vDrawInfiniteLifeButton(inflife_button, game_wrapper_infinite_life_flag);
-				vDrawSetLevelButton(setlevel_button, game_wrapper_level);
-				vDrawPlayButton(play_button);
-				vDrawBackButton(back_button);
+        			xSemaphoreGive(game_wrapper.lock);
+        		}
+
+        		taskENTER_CRITICAL();
+
+        		if (xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE) {
+
+    				vDrawBackgroundImage(background_image);
+    				vDrawSetScoreButton(setscore_button, game_wrapper_set_score_flag);
+    				vDrawInfiniteLifeButton(inflife_button, game_wrapper_infinite_life_flag);
+    				vDrawSetLevelButton(setlevel_button, game_wrapper_level);
+    				vDrawPlayButton(play_button);
+    				vDrawBackButton(back_button);
+        		}
 
 				xSemaphoreGive(ScreenLock);
-			}
 
-		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
+				taskEXIT_CRITICAL();
+
+				vTaskDelay((TickType_t)100); // Basic sleep of 100ms
+
+            }
+		}
 	}
-
 }
 
-
-void vDrawHighscore(short highscore)
-{
-	static char highscore_string[100];
-	static int highscore_string_width = 0;
-
-	sprintf(highscore_string, "%d", highscore);
-
-	if (!tumGetTextSize((char *)highscore_string,&highscore_string_width, NULL))
-		tumDrawText(highscore_string, SCREEN_WIDTH/2-highscore_string_width/2,
-					SCREEN_HEIGHT*3/6- DEFAULT_FONT_SIZE/2, Green);
-}
 
 
 void vDrawLobbyHighscoreTask(void *pvParameters){
@@ -1139,30 +1149,39 @@ void vDrawLobbyHighscoreTask(void *pvParameters){
 
 	while(1){
 
-		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
-		{
-			highscore = game_wrapper.highscore;
-
-			xSemaphoreGive(game_wrapper.lock);
-		}
-
 		if (DrawSignal)
-			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
-			{
-				xSemaphoreTake(ScreenLock, portMAX_DELAY);
+		{
+            if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
+            {
+        		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
+        		{
+        			highscore = game_wrapper.highscore;
 
-				vDrawBackgroundImage(background_image);
-				vDrawHighscore(highscore);
-				vDrawBackButton(back_button);
+        			xSemaphoreGive(game_wrapper.lock);
+        		}
+
+        		taskENTER_CRITICAL();
+
+        		if (xSemaphoreTake(ScreenLock, 0) == pdTRUE) {
+
+    				vDrawBackgroundImage(background_image);
+    				vDrawHighscore(highscore);
+    				vDrawBackButton(back_button);
+        		}
 
 				xSemaphoreGive(ScreenLock);
-			}
 
-		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
+        		taskEXIT_CRITICAL();
+
+        		vTaskDelay((TickType_t)100); // Basic sleep of 100ms
+            }
+		}
 	}
 }
 
-void draw_score()
+
+
+void vDrawScore()
 {
 	static char scoreText_string[100];
 	static int scoreText_string_width = 0;
@@ -1178,7 +1197,7 @@ void draw_score()
 		tumDrawText(scoreText_string, SCREEN_WIDTH/2 - scoreText_string_width/2, SCREEN_HEIGHT/20 - DEFAULT_FONT_SIZE /2, White);
 }
 
-void draw_pause_resume()
+void vDrawPauseResume()
 {
 	static char pause_resumeText_string[100];
 	static int pause_resumeText_string_width = 0;
@@ -1205,20 +1224,18 @@ void draw_pause_resume()
 
 }
 
-void draw_quit()
+void vDrawReset()
 {
 	static char quitText_string[100];
 	static int quitText_string_width = 0;
 
-
 	sprintf(quitText_string, "RESET [B]");
-
 
 	if (!tumGetTextSize((char *)quitText_string, &quitText_string_width, NULL))
 		tumDrawText(quitText_string, SCREEN_WIDTH*19/20 - quitText_string_width, SCREEN_HEIGHT*2/20 - DEFAULT_FONT_SIZE /2, White);
 }
 
-void draw_level()
+void vDrawLevel()
 {
 	static char levelText_string[100];
 	static int levelText_string_width = 0;
@@ -1235,7 +1252,7 @@ void draw_level()
 }
 
 
-void draw_lifes(my_square_t* life_shape, image_handle_t life_image)
+void vDrawLifes(my_square_t* life_shape, image_handle_t life_image)
 {
 	// get lifes
 	if (xSemaphoreTake(game_wrapper.lock, 0) == pdTRUE)
@@ -1267,7 +1284,7 @@ void check_swap_invaders(unsigned char *swap_state)
 	}
 }
 
-void draw_Alien(unsigned char * swap_state, my_square_t* alien_shape, short invaders_pos_x, short invaders_pos_y, unsigned char i, unsigned char j, image_handle_t alien_1_1_image, image_handle_t alien_1_2_image, image_handle_t alien_2_1_image, image_handle_t alien_2_2_image, image_handle_t alien_3_1_image, image_handle_t alien_3_2_image)
+void vDrawAlien(unsigned char * swap_state, my_square_t* alien_shape, short invaders_pos_x, short invaders_pos_y, unsigned char i, unsigned char j, image_handle_t alien_1_1_image, image_handle_t alien_1_2_image, image_handle_t alien_2_1_image, image_handle_t alien_2_2_image, image_handle_t alien_3_1_image, image_handle_t alien_3_2_image)
 {
 	unsigned int color_state_1[3] = {Red, Blue, Yellow};
 	unsigned int color_state_2[3] = {Pink, Fuchsia, Lime};
@@ -1321,7 +1338,7 @@ void draw_Alien(unsigned char * swap_state, my_square_t* alien_shape, short inva
 
 }
 
-void draw_Invaders(unsigned char *swap_state, my_square_t* alien_shape, image_handle_t alien_1_1_image, image_handle_t alien_1_2_image, image_handle_t alien_2_1_image, image_handle_t alien_2_2_image, image_handle_t alien_3_1_image, image_handle_t alien_3_2_image)
+void vDrawInvaders(unsigned char *swap_state, my_square_t* alien_shape, image_handle_t alien_1_1_image, image_handle_t alien_1_2_image, image_handle_t alien_2_1_image, image_handle_t alien_2_2_image, image_handle_t alien_3_1_image, image_handle_t alien_3_2_image)
 {
 	short invaders_pos_x = invaders.pos_x;
 	short invaders_pos_y = invaders.pos_y;
@@ -1337,11 +1354,8 @@ void draw_Invaders(unsigned char *swap_state, my_square_t* alien_shape, image_ha
 				// if Alien is alive
 				if (invaders.enemy[i][j].alive)
 				{
-
 					check_swap_invaders(swap_state);
-
-					draw_Alien(swap_state, alien_shape, invaders_pos_x, invaders_pos_y, i, j, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
-
+					vDrawAlien(swap_state, alien_shape, invaders_pos_x, invaders_pos_y, i, j, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
 				}
 
 			}
@@ -1350,32 +1364,20 @@ void draw_Invaders(unsigned char *swap_state, my_square_t* alien_shape, image_ha
 	}
 }
 
-void draw_player_bullet(unsigned char player_bullet_alive, my_square_t* player_bullet_shape)
+void vDrawBullet(unsigned char bullet_alive, my_square_t* bullet_shape, image_handle_t bullet_image)
 {
-	// draw bullet
-	if (player_bullet_alive)
+	if (bullet_alive)
 	{
-		if (!tumDrawFilledBox(player_bullet_shape->x_pos, player_bullet_shape->y_pos, player_bullet_shape->width, player_bullet_shape->height, player_bullet_shape->color)){}
-	}
-}
-
-void draw_aliens_bullet(unsigned char aliens_bullet_alive, my_square_t* aliens_bullet_shape, image_handle_t alien_bullet_image)
-{
-	// draw bullet
-	if (aliens_bullet_alive)
-	{
-		if(tumDrawLoadedImage(alien_bullet_image, aliens_bullet_shape->x_pos, aliens_bullet_shape->y_pos))
+		if(tumDrawLoadedImage(bullet_image, bullet_shape->x_pos, bullet_shape->y_pos))
 		{
-			if (!tumDrawFilledBox(aliens_bullet_shape->x_pos, aliens_bullet_shape->y_pos, aliens_bullet_shape->width, aliens_bullet_shape->height, aliens_bullet_shape->color)){}
+			tumDrawFilledBox(bullet_shape->x_pos, bullet_shape->y_pos, bullet_shape->width, bullet_shape->height, bullet_shape->color);
 		}
 	}
 }
 
 
-
-void draw_player(my_square_t* player_shape, image_handle_t player_image )
+void vDrawPlayer(my_square_t* player_shape, image_handle_t player_image )
 {
-	// draw player
 	if(tumDrawLoadedImage(player_image, player_shape->x_pos, player_shape->y_pos))
 	{
 		if (!tumDrawFilledBox(player_shape->x_pos, player_shape->y_pos, player_shape->width, player_shape->height, player_shape->color)){}
@@ -1383,23 +1385,19 @@ void draw_player(my_square_t* player_shape, image_handle_t player_image )
 
 }
 
-void draw_mothership(unsigned char mothership_alive, my_square_t* mothership_shape, image_handle_t mothership_image )
+void vDrawMothership(unsigned char mothership_alive, my_square_t* mothership_shape, image_handle_t mothership_image )
 {
 	if(mothership_alive)
 	{
-		// draw player
 		if(tumDrawLoadedImage(mothership_image, mothership_shape->x_pos, mothership_shape->y_pos))
 		{
 			if (!tumDrawFilledBox(mothership_shape->x_pos, mothership_shape->y_pos, mothership_shape->width, mothership_shape->height, mothership_shape->color)){}
 		}
 	}
-
-
 }
 
-void get_player_bullet_position(my_square_t* player_shape, my_square_t* player_bullet_shape, unsigned char *player_bullet_alive)
+void vGetPlayerBulletPos(my_square_t* player_shape, my_square_t* player_bullet_shape, unsigned char *player_bullet_alive)
 {
-	// get position of player_x, bullet, bullet_alive
 	if (xSemaphoreTake(player.lock, 0) == pdTRUE)
 	{
 	    	player_shape->x_pos = player.pos_x;
@@ -1415,9 +1413,8 @@ void get_player_bullet_position(my_square_t* player_shape, my_square_t* player_b
 	}
 }
 
-void get_aliens_bullet_position(my_square_t* aliens_bullet_shape, unsigned char *aliens_bullet_alive)
+void vGetAliensBulletPos(my_square_t* aliens_bullet_shape, unsigned char *aliens_bullet_alive)
 {
-	// get position of player_x, bullet, bullet_alive
 	if (xSemaphoreTake(invaders.lock, 0) == pdTRUE)
 	{
 		if(invaders.bullet.alive == 1)
@@ -1431,7 +1428,7 @@ void get_aliens_bullet_position(my_square_t* aliens_bullet_shape, unsigned char 
 	}
 }
 
-void get_mothership_position(my_square_t* mothership_shape, unsigned char *mothership_alive)
+void vGetMothershipPos(my_square_t* mothership_shape, unsigned char *mothership_alive)
 {
 	if (xSemaphoreTake(mothership.lock, 0) == pdTRUE)
 	{
@@ -1441,7 +1438,7 @@ void get_mothership_position(my_square_t* mothership_shape, unsigned char *mothe
 	}
 }
 
-void draw_bunker(my_square_t* bunker_block_shape, image_handle_t bunker_block_worse_image, image_handle_t bunker_block_bad_image, image_handle_t bunker_block_good_image )
+void vDrawBunker(my_square_t* bunker_block_shape, image_handle_t bunker_block_worse_image, image_handle_t bunker_block_bad_image, image_handle_t bunker_block_good_image )
 {
 	if (xSemaphoreTake(bunker.lock, 0) == pdTRUE)
 	{
@@ -1475,19 +1472,17 @@ void draw_bunker(my_square_t* bunker_block_shape, image_handle_t bunker_block_wo
 
 						if(tumDrawLoadedImage(bunker_block_good_image, bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X * r, bunker.pos_y + BUNKER_BLOCK_SIZE_Y * u))
 						{
-							if (!tumDrawFilledBox(bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X * r, bunker.pos_y + BUNKER_BLOCK_SIZE_Y * u, BUNKER_BLOCK_SIZE_X, BUNKER_BLOCK_SIZE_Y, White)){}
+							if (!tumDrawFilledBox(bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X * r, bunker.pos_y + BUNKER_BLOCK_SIZE_Y * u, BUNKER_BLOCK_SIZE_X, BUNKER_BLOCK_SIZE_Y, Green)){}
 						}
 						break;
 					default:
 						break;
 					}
-
 				}
-
 			}
 		}
-		xSemaphoreGive(bunker.lock);
 	}
+	xSemaphoreGive(bunker.lock);
 }
 
 
@@ -1536,47 +1531,45 @@ void vDrawGameTask(void *pvParameters){
 		if (DrawSignal)
 			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
 			{
-				get_player_bullet_position(player_shape, player_bullet_shape, &player_bullet_alive);
-				get_aliens_bullet_position(aliens_bullet_shape, &aliens_bullet_alive);
-				get_mothership_position(mothership_shape, &mothership_alive);
+				vGetPlayerBulletPos(player_shape, player_bullet_shape, &player_bullet_alive);
+				vGetAliensBulletPos(aliens_bullet_shape, &aliens_bullet_alive);
+				vGetMothershipPos(mothership_shape, &mothership_alive);
 
-				xSemaphoreTake(ScreenLock, portMAX_DELAY);
+				taskENTER_CRITICAL();
 
-				if(tumDrawLoadedImage(background_image, 0, 0))
-				{
-					checkDraw(tumDrawClear(Black), __FUNCTION__); 	// Clear screen
+				if (xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE) {
+
+					vDrawBackgroundImage(background_image);
+					vDrawBunker(bunker_block_shape, bunker_block_worse_image, bunker_block_bad_image, bunker_block_good_image);
+					vDrawInvaders(&swap_state, alien_shape, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
+	           	    vDrawPlayer(player_shape, player_image);
+	           	    vDrawMothership(mothership_alive, mothership_shape, mothership_image);
+	           	    vDrawBullet(player_bullet_alive, player_bullet_shape, NULL);
+					vDrawBullet(aliens_bullet_alive, aliens_bullet_shape, alien_bullet_image);
+					vDrawScore();
+					vDrawLevel();
+					vDrawPauseResume();
+					vDrawReset();
+					vDrawLifes(life_shape,life_image);
 				}
 
-
-				draw_bunker(bunker_block_shape, bunker_block_worse_image, bunker_block_bad_image, bunker_block_good_image);
-				draw_Invaders(&swap_state, alien_shape, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
-           	    draw_player(player_shape, player_image);
-           	    draw_mothership(mothership_alive, mothership_shape, mothership_image);
-				draw_player_bullet(player_bullet_alive, player_bullet_shape);
-				draw_aliens_bullet(aliens_bullet_alive, aliens_bullet_shape, alien_bullet_image);
-				draw_score();
-				draw_level();
-				draw_pause_resume();
-				draw_quit();
-				draw_lifes(life_shape,life_image);
-
 				xSemaphoreGive(ScreenLock);
+
+				taskEXIT_CRITICAL();
+
+				vTaskDelay((TickType_t)50); // Basic sleep of 100ms
 			}
-
-		vTaskDelay((TickType_t)50); // Basic sleep of 100ms
 	}
-
 }
 
 
 
 
-void vSwap_Invaders(void *pvParameters)
+void vSwapInvadersTask(void *pvParameters)
 {
 	TickType_t xWaitingTime = 1000;
 
 	unsigned char swap = 1;
-
 
 	while(1)
 	{
@@ -1584,19 +1577,17 @@ void vSwap_Invaders(void *pvParameters)
 		{
 			xWaitingTime = abs(round((1/invaders.speed) * 50 ));
 			prints("Swarp Invaders frequency: %d, invaders speed: %f\n", xWaitingTime, invaders.speed);
-			// fflush(stdout);
-			xSemaphoreGive(invaders.lock);
 		}
+		xSemaphoreGive(invaders.lock);
 
 		if (SwapInvadersQueue) xQueueSend(SwapInvadersQueue, &swap, 0);
-
 
 		vTaskDelay(pdMS_TO_TICKS(xWaitingTime));
 	}
 }
 
 
-void vLet_Alien_Shoot(void *pvParameters)
+void vAlienShootTask(void *pvParameters)
 {
 	unsigned char shoot = 1;
 	TickType_t xWaitingTime = 500;
@@ -1652,6 +1643,8 @@ int main(int argc, char *argv[])
         PRINT_ERROR("Failed to initialize audio");
         goto err_init_audio;
     }
+
+    atexit(aIODeinit);
 
     // locks and semaphores
     buttons.lock = xSemaphoreCreateMutex(); // Button Locking mechanism
@@ -1756,18 +1749,18 @@ int main(int argc, char *argv[])
 
 
 
-    if (xTaskCreate(vSwap_Invaders, "Swap_Invaders",
+    if (xTaskCreate(vSwapInvadersTask, "SwapInvadersTask",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 1,
-    						&Swap_Invaders) != pdPASS) {
-        PRINT_TASK_ERROR("Swap_Invaders");
-        goto err_Swap_Invaders;
+    						&SwapInvadersTask) != pdPASS) {
+        PRINT_TASK_ERROR("SwapInvadersTask");
+        goto err_SwapInvadersTask;
     }
 
-    if (xTaskCreate(vLet_Alien_Shoot, "Let_Alien_Shoot",
+    if (xTaskCreate(vAlienShootTask, "AlienShootTask",
     						mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 1,
-    						&Let_Alien_Shoot) != pdPASS) {
-        PRINT_TASK_ERROR("Let_Alien_Shoot");
-        goto err_Let_Alien_Shoot;
+    						&AlienShootTask) != pdPASS) {
+        PRINT_TASK_ERROR("AlienShootTask");
+        goto err_AlienShootTask;
     }
 
 
@@ -1778,8 +1771,8 @@ int main(int argc, char *argv[])
     vTaskSuspend(DrawLobbyCheatTask);
     vTaskSuspend(DrawLobbyHighscoreTask);
     vTaskSuspend(DrawGameTask);
-    vTaskSuspend(Swap_Invaders);
-    vTaskSuspend(Let_Alien_Shoot);
+    vTaskSuspend(SwapInvadersTask);
+    vTaskSuspend(AlienShootTask);
 
 
     vTaskStartScheduler();
@@ -1796,10 +1789,10 @@ err_DrawLobbyCheatTask:
 err_DrawLobbyHighscoreTask:
 	vTaskDelete(DrawGameTask);
 err_DrawGameTask:
-	vTaskDelete(Swap_Invaders);
-err_Swap_Invaders:
-	vTaskDelete(Let_Alien_Shoot);
-err_Let_Alien_Shoot:
+	vTaskDelete(SwapInvadersTask);
+err_SwapInvadersTask:
+	vTaskDelete(AlienShootTask);
+err_AlienShootTask:
 	vTaskDelete(BufferSwap);
 err_bufferswap:
 	vTaskDelete(buttonInput);
