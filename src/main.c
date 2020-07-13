@@ -741,7 +741,7 @@ short debounceRIGHT = 0;
             case STATE_FIVE:
         		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
         		{
-        			prints("took button semph\n");
+//        			prints("took button semph\n");
         			checkButton_B(&keycodeB_last, one_state_signal, &paused);
         			checkButton_P_game(&keycodeP_last, &paused);
 
@@ -753,6 +753,8 @@ short debounceRIGHT = 0;
         			}
 
         			xSemaphoreGive(buttons.lock);
+//        			prints("gave button semph\n");
+
         		}
             	break;
 
@@ -778,6 +780,7 @@ void vDraw_pop_up_page(void *pvParameters)
 
 	my_square_t* pop_up_page = create_rect(SCREEN_WIDTH/2 - POP_UP_PAGE_WIDTH/2, SCREEN_HEIGHT/2 - POP_UP_PAGE_HEIGHT/2, POP_UP_PAGE_WIDTH, POP_UP_PAGE_HEIGHT,Black);
 
+	image_handle_t background_image = tumDrawLoadImage("../resources/images/pop_up_page.png");
 	short countdown = SECS_TO_WAIT;
 
 	while(1)
@@ -801,7 +804,11 @@ void vDraw_pop_up_page(void *pvParameters)
 			{
 				xSemaphoreTake(ScreenLock, portMAX_DELAY);
 
-				checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+				if(tumDrawLoadedImage(background_image, 0, 0))
+				{
+					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
+
+				}
 
 				if (!tumDrawFilledBox(pop_up_page->x_pos, pop_up_page->y_pos, pop_up_page->width, pop_up_page->height, pop_up_page->color)){} //Draw Box.
 
