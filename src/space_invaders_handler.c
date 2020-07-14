@@ -95,7 +95,7 @@ void UDPHandler(size_t read_size, char *buffer, void *args)
                            xHigherPriorityTaskWoken3);
     }
     else {
-        fprintf(stderr, "[ERROR] Overlapping UDPHandler call\n");
+        fprints(stderr, "[ERROR] Overlapping UDPHandler call\n");
     }
 }
 
@@ -620,7 +620,8 @@ void vMoveInvaders(unsigned char* invaders_won, TickType_t * last_time)
 		if (invaders.pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * invaders.maxFront > BUNKER_POS_Y )
 		{
 			prints("aliens reached bottonscreen\n");
-			*invaders_won = 1;
+			if(*invaders_won == 0)
+				*invaders_won = 1;
 		}
 
 		vMoveAlienBullet(&invaders.bullet, ALIEN_BULLET_SPEED);
@@ -906,7 +907,8 @@ void vPlayerGotHit(unsigned char *invaders_won)
 			if(game_wrapper.remaining_life <= 0)
 			{
 				prints("player lost too many lifes\n");
-				*invaders_won = 1;
+				if(*invaders_won == 0)
+					*invaders_won = 1;
 			}
 		}
 	}

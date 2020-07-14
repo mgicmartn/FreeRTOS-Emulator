@@ -951,7 +951,8 @@ void vDrawPopUpPageTask(void *pvParameters)
 
 				if(xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE)
 				{
-					vDrawBackgroundImage( background_image);
+//					vDrawBackgroundImage( background_image);
+					checkDraw(tumDrawClear(Grey), __FUNCTION__); 	// Clear screen
 					vDrawPopUpField(pop_up_page, &next_state, countdown );
 				}
 
@@ -1483,7 +1484,7 @@ void vDrawGameTask(void *pvParameters){
 					vDrawInvaders(&swap_state, alien_shape, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
 	           	    vDrawPlayer(player_shape, player_image);
 	           	    vDrawMothership(mothership_alive, mothership_shape, mothership_image);
-	           	    vDrawBullet(player_bullet_alive, player_bullet_shape, alien_bullet_image);
+	           	    vDrawBullet(player_bullet_alive, player_bullet_shape, NULL);
 					vDrawBullet(aliens_bullet_alive, aliens_bullet_shape, alien_bullet_image);
 					vDrawScore();
 					vDrawLevel();
