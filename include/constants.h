@@ -29,7 +29,7 @@
 
 #define BULLET_SIZE_X 2
 #define BULLET_SIZE_Y 10
-#define BULLET_SPEED 20
+#define BULLET_SPEED 18
 #define ALIEN_BULLET_SPEED 6
 
 #define ALIEN_SIZE_X 20

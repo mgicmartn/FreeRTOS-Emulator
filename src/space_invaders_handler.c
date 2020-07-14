@@ -724,36 +724,36 @@ void vKillInvadersBullet(void)
 
 void vKillAlien(short y, short x, unsigned char * player_won)
 {
-	prints("debugg 04\n");
 	unsigned char killed = 0;
 
 	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
 	{
-		prints("debugg 06\n");
 		if(invaders.enemy[y][x].alive)
 		{
-			prints("debugg 05\n");
 			invaders.enemy[y][x].alive = 0;
 			killed = 1;
 			invaders.killed ++;
 
 			// adjust front
-			for(short u = NUMBER_OF_ALIENS_Y - 1; u >= 0; u--)
+			for(short u = NUMBER_OF_ALIENS_Y - 1; u >= -1; u--)
 			{
-				prints("debugg 07\n");
 				if(invaders.enemy[u][x].alive)
 				{
-					prints("u: %d, x: %d\n", u,x);
 					invaders.front[x] = u;
-					prints("das funzt\n");
+					break;
+				}
+
+				// column empty
+				if(u < 0)
+				{
+					invaders.front[x] = -1;
 					break;
 				}
 			}
-			prints("debugg 01\n");
+
 			// adjust right and left border of invaders block
 			if(invaders.front[x] < 0)
 			{
-				prints("debugg 02\n");
 				for( short r = 0; r < NUMBER_OF_ALIENS_X; r++)
 				{
 					// check if far left column still exists
@@ -764,7 +764,6 @@ void vKillAlien(short y, short x, unsigned char * player_won)
 				}
 				for( short t = NUMBER_OF_ALIENS_X - 1; t >= 0; t--)
 				{
-					prints("debugg 03\n");
 					// check if far right column still exists
 					if(invaders.front[t] < 0)
 						invaders.last_column_right = t;
@@ -777,7 +776,6 @@ void vKillAlien(short y, short x, unsigned char * player_won)
 			invaders.maxFront = 0;
 			for(short c = 0; c < NUMBER_OF_ALIENS_X; c++)
 			{
-				prints("debugg 10\n");
 				if(invaders.maxFront < invaders.front[c])
 					invaders.maxFront = invaders.front[c];
 			}
@@ -791,7 +789,6 @@ void vKillAlien(short y, short x, unsigned char * player_won)
 			// check if all aliens killed
 			if(invaders.killed >= NUMBER_OF_ALIENS_X * NUMBER_OF_ALIENS_Y)
 			{
-				prints("debugg 11\n");
 				*player_won = 1;
 			}
 
@@ -867,7 +864,7 @@ void vDestructBunkerBlockPlayerSide(short bunkerNumber, short player_front, shor
 		bunker.bunkers[bunkerNumber].block_destruction_state[ player_front ][ xBlock ]--;
 	}
 	// if bunker block is destroyed adjust front
-	else if(bunker.bunkers[bunkerNumber].block_destruction_state[player_front][xBlock] == 0)
+	if(bunker.bunkers[bunkerNumber].block_destruction_state[player_front][xBlock] == 0)
 	{
 		if(player_front > 0)
 			bunker.bunkers[bunkerNumber].player_front[xBlock]--;
