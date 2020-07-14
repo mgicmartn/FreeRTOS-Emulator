@@ -315,9 +315,9 @@ void vCheckButtonGameP(unsigned char * keycodeP_last, unsigned char* paused){
 		{
 			if(*paused == 0)
 			{
-//			    static char buf[50];
-//			    sprintf(buf, "PAUSE");
-//		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+			    static char buf[50];
+			    sprintf(buf, "PAUSE");
+		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 
 		        if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
 		        if (GameHandlerTask) vTaskSuspend(GameHandlerTask);
@@ -338,9 +338,9 @@ void vCheckButtonGameP(unsigned char * keycodeP_last, unsigned char* paused){
                 if (SwapInvadersTask) vTaskResume(SwapInvadersTask);
                 if (UDPControlTask) vTaskResume(UDPControlTask);
 
-//			    static char buf[50];
-//			    sprintf(buf, "RESUME");
-//		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+			    static char buf[50];
+			    sprintf(buf, "RESUME");
+		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 
             	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
             	{
@@ -371,7 +371,8 @@ void vCheckButtonA(unsigned char * keycodeA_last){
 		{
 			if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
 			{
-				mothership.AI_control = (mothership.AI_control + 1) % 2;
+				mothership.AI_control = (mothership.AI_control + 1) % 4;
+				xQueueOverwrite(DifficultyQueue, (void*)&mothership.AI_control);
 			}
 			xSemaphoreGive(mothership.lock);
 		}

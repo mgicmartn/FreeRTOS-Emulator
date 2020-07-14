@@ -32,6 +32,7 @@
 static QueueHandle_t PlayerXQueue = NULL;
 static QueueHandle_t MothershipXQueue = NULL;
 static QueueHandle_t PlayerBulletModeXQueue = NULL;
+QueueHandle_t DifficultyQueue = NULL;
 static QueueHandle_t NextKeyQueue = NULL;
 //static QueueHandle_t GameMessageQueue = NULL;
 
@@ -110,8 +111,8 @@ void vUDPControlTask(void *pvParameters)
     unsigned int mothership_x = 0;
     player_bullet_status_t player_bullet_status = 0;
     player_bullet_status_t last_player_bullet_status = -1;
-//    char last_difficulty = -1;
-//    char difficulty = 1;
+    char last_difficulty = -1;
+    char difficulty = 1;
 
     short last_diff = 0;
 
@@ -128,8 +129,8 @@ void vUDPControlTask(void *pvParameters)
         }
         while (xQueueReceive(PlayerBulletModeXQueue, &player_bullet_status, 0) == pdTRUE) {
         }
-//        while (xQueueReceive(DifficultyQueue, &difficulty, 0) == pdTRUE) {
-//        }
+        while (xQueueReceive(DifficultyQueue, &difficulty, 0) == pdTRUE) {
+        }
 //        prints("px %d, mx %d\n", player_x, mothership_x);
         short diff = player_x - mothership_x;
         if (diff > 0) {
@@ -164,12 +165,12 @@ void vUDPControlTask(void *pvParameters)
             last_player_bullet_status = player_bullet_status;
         }
 
-//        if (last_difficulty != difficulty) {
-//            sprintf(buf, "D%d", difficulty + 1);
-//            aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
-//                         strlen(buf));
-//            last_difficulty = difficulty;
-//        }
+        if (last_difficulty != difficulty && difficulty != 0) {
+            sprintf(buf, "D%d", difficulty);
+            aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf,
+                         strlen(buf));
+            last_difficulty = difficulty;
+        }
     }
 }
 
@@ -833,7 +834,7 @@ void vKillAlien(short y, short x, unsigned char * player_won)
 }
 
 
-void vKillMothership(TickType_t * last_time_mothership)
+void vKillMothership(TickType_t * last_time_mothership, unsigned char* AI_control_ON)
 {
 	if(mothership.alive)
 	{
@@ -847,6 +848,12 @@ void vKillMothership(TickType_t * last_time_mothership)
 		xSemaphoreGive(game_wrapper.lock);
 
 		vKillPlayerBullet();
+
+		if(*AI_control_ON)
+		{
+			player_bullet_status_t bullet_status = PASSIVE;
+			xQueueSend(PlayerBulletModeXQueue, (void*)&bullet_status, 0);
+		}
 
 		mothership.alive = 0;
 		*last_time_mothership = xTaskGetTickCount();
@@ -1089,7 +1096,7 @@ void vCheckIfBunkerGotHitPlayer(short player_bullet_pos_x, short player_bullet_p
 }
 
 
-void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos_y, TickType_t * last_time_mothership)
+void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos_y, TickType_t * last_time_mothership, unsigned char* AI_control_ON)
 {
 	if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
 	{
@@ -1098,7 +1105,7 @@ void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos
 		{
 			if(player_bullet_pos_x > mothership.pos_x - BULLET_SIZE_X && player_bullet_pos_x < mothership.pos_x + MOTHERSHIP_SIZE_X)
 			{
-				vKillMothership(last_time_mothership);
+				vKillMothership(last_time_mothership, AI_control_ON);
 			}
 		}
 	}
@@ -1106,7 +1113,7 @@ void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos
 }
 
 
-void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_time_mothership)
+void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_time_mothership, unsigned char* AI_control_ON)
 {
 	short invaders_pos_y = 0;
 	short invaders_pos_x = 0;
@@ -1141,7 +1148,7 @@ void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_t
 
 		vCheckIfInvadersGotHit(invaders_pos_x, invaders_pos_y, player_bullet_pos_x, player_bullet_pos_y, player_won, invaders_front);
 		vCheckIfBunkerGotHitPlayer(player_bullet_pos_x, player_bullet_pos_y);
-		vCheckIfMothershipGotHit(player_bullet_pos_x, player_bullet_pos_y, last_time_mothership);
+		vCheckIfMothershipGotHit(player_bullet_pos_x, player_bullet_pos_y, last_time_mothership, AI_control_ON);
 	}
 
 }
@@ -1228,7 +1235,7 @@ void vGameHandlerTask(void *pvParameters)
 		vMoveMothership(&last_time_mothership, &AI_control_ON);
 
 		vMovePlayer(&moving_left, &moving_right, AI_control_ON);
-		vCheckPlayerBulletCollision(&player_won, &last_time_mothership);
+		vCheckPlayerBulletCollision(&player_won, &last_time_mothership, &AI_control_ON);
 		vCheckAliensBulletCollision(&invaders_won);
 		vAlienShoot();
 
@@ -1305,10 +1312,11 @@ int init_space_invaders_handler(void)
     if (!PlayerBulletModeXQueue) {
         exit(EXIT_FAILURE);
     }
-//    GameMessageQueue = xQueueCreate(5, sizeof(game_messages_t));
-//    if (!GameMessageQueue) {
-//        exit(EXIT_FAILURE);
-//    }
+    DifficultyQueue = xQueueCreate(5, sizeof(unsigned char));
+    if (!DifficultyQueue) {
+        exit(EXIT_FAILURE);
+    }
+
     NextKeyQueue = xQueueCreate(1, sizeof(opponent_cmd_t));
     if (!NextKeyQueue) {
         exit(EXIT_FAILURE);

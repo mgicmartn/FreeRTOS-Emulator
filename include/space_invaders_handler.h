@@ -8,6 +8,7 @@
 #include "task.h"
 #include "main.h"
 
+extern QueueHandle_t DifficultyQueue;
 
 extern TaskHandle_t InitGameTaks;
 extern TaskHandle_t GameHandlerTask;
@@ -88,7 +89,7 @@ void vKillInvadersBullet(void);
 
 void vKillAlien(short y, short x, unsigned char * player_won);
 
-void vKillMothership(TickType_t * last_time_mothership);
+void vKillMothership(TickType_t * last_time_mothership, unsigned char* AI_control);
 
 void vDestructBunkerBlockPlayerSide(short bunkerNumber, short player_front, short xBlock);
 
@@ -108,9 +109,9 @@ void vCheckIfInvadersGotHit(short invaders_pos_x, short invaders_pos_y, short pl
 
 void vCheckIfBunkerGotHitPlayer(short player_bullet_pos_x, short player_bullet_pos_y);
 
-void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos_y, TickType_t * last_time_mothership);
+void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos_y, TickType_t * last_time_mothership, unsigned char* AI_control);
 
-void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_time_mothership);
+void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_time_mothership, unsigned char* AI_control);
 
 void vSetLastTimeAfterResume(TickType_t* last_time, TickType_t* last_time_mothership);
 

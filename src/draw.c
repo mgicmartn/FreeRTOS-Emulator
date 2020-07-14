@@ -135,7 +135,7 @@ void vDrawPlayButton(my_square_t* play_button)
 	static char play_string[100];
 	static int play_string_width = 0;
 
-	sprintf(play_string, "PLAY [P]");
+	sprintf(play_string, "[P]LAY");
 
 	tumDrawFilledBox(play_button->x_pos, play_button->y_pos, play_button->width, play_button->height, play_button->color);
 
@@ -166,7 +166,7 @@ void vDrawCheatButton(my_square_t* cheat_button)
 	static char cheat_string[100];
 	static int cheat_string_width = 0;
 
-	sprintf(cheat_string, "CHEAT [C]");
+	sprintf(cheat_string, "[C]HEAT");
 
 	tumDrawFilledBox(cheat_button->x_pos, cheat_button->y_pos, cheat_button->width, cheat_button->height, cheat_button->color);
 
@@ -180,7 +180,7 @@ void vDrawHighscoreButton(my_square_t* highscore_button)
 	static char highscore_string[100];
 	static int highscore_string_width = 0;
 
-	sprintf(highscore_string, "HIGHSCORE [H]");
+	sprintf(highscore_string, "[H]IGHSCORE");
 
 	tumDrawFilledBox(highscore_button->x_pos, highscore_button->y_pos, highscore_button->width, highscore_button->height, highscore_button->color);
 
@@ -194,12 +194,15 @@ void vDrawTwoPlayerButton(my_square_t* two_player_mode_button, unsigned char mot
 	static char two_player_mode_string[100];
 	static int two_player_mode_string_width = 0;
 
-	sprintf(two_player_mode_string, "TWO PLAYER (AI-MODE) [A]");
-
-	if(mothership_AI_control)
+	if(mothership_AI_control >0)
+	{
+		sprintf(two_player_mode_string, "[A] TWO PLAYER | DIFFICULTY: %d", mothership_AI_control);
 		tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Green);
-	else
+	}
+	else {
+		sprintf(two_player_mode_string, "[A] TWO PLAYER | OFF");
 		tumDrawFilledBox(two_player_mode_button->x_pos, two_player_mode_button->y_pos, two_player_mode_button->width, two_player_mode_button->height, Black);
+	}
 
 	if (!tumGetTextSize((char *)two_player_mode_string,&two_player_mode_string_width, NULL))
 		tumDrawText(two_player_mode_string,two_player_mode_button->x_pos + LOBBY_BUTTON_WIDTH/2-two_player_mode_string_width/2,
@@ -212,7 +215,7 @@ void vDrawBackButton(my_square_t* back_button)
 	static char back_string[100];
 	static int back_string_width = 0;
 
-	sprintf(back_string, "BACK [B]");
+	sprintf(back_string, "[B]ACK");
 
 	if (!tumDrawFilledBox(back_button->x_pos, back_button->y_pos, back_button->width, back_button->height, back_button->color)){} //Draw Box.
 
@@ -229,7 +232,7 @@ void vDrawSetLevelButton(my_square_t* setlevel_button, short game_wrapper_level)
 	static char setlevel_string[100];
 	static int setlevel_string_width = 0;
 
-	sprintf(setlevel_string, "SET LEVEL: %d [UP] [DOWN]", game_wrapper_level + 1);
+	sprintf(setlevel_string, "[UP] [DOWN] SET LEVEL: %d", game_wrapper_level + 1);
 
 	if(game_wrapper_level == 0)
 		tumDrawFilledBox(setlevel_button->x_pos, setlevel_button->y_pos, setlevel_button->width, setlevel_button->height, Grey);
@@ -246,7 +249,7 @@ void vDrawInfiniteLifeButton(my_square_t* inflife_button, unsigned char game_wra
 	static char inflife_string[100];
 	static int inflife_string_width = 0;
 
-	sprintf(inflife_string, "INFINITE LIFES [L]");
+	sprintf(inflife_string, "[L] INFINITE LIFES");
 
 	if(game_wrapper_infinite_life_flag)
 		tumDrawFilledBox(inflife_button->x_pos, inflife_button->y_pos, inflife_button->width, inflife_button->height, Green);
@@ -269,9 +272,9 @@ void vDrawSetScoreButton(my_square_t* setscore_button, unsigned char game_wrappe
 	static char ten_thousand_string[100];
 	static int ten_thousand_string_width = 0;
 
-	sprintf(one_hundred_string, "100 [T]");
-	sprintf(one_thousand_string, "1000 [K]");
-	sprintf(ten_thousand_string, "10000 [U]");
+	sprintf(one_hundred_string, "[T] 100 ");
+	sprintf(one_thousand_string, "[K] 1000");
+	sprintf(ten_thousand_string, "[U] 10000");
 	sprintf(setscore_string, "SET SCORE:");
 
 	unsigned int color_100 = White;
