@@ -39,7 +39,7 @@ static SemaphoreHandle_t HandleUDP = NULL;
 
 // task handles
 TaskHandle_t Init_Game = NULL;
-TaskHandle_t Game_Handler = NULL;
+TaskHandle_t GameHandlerTask = NULL;
 TaskHandle_t UDPControlTask = NULL;
 TaskHandle_t DrawPopUpPageTask = NULL;
 
@@ -174,31 +174,25 @@ void vUDPControlTask(void *pvParameters)
 }
 
 
-unsigned char xCheckPongUDPInput(unsigned short *mothership_pox_x)
+unsigned char xCheckMothershipUDPInput()
 {
     static opponent_cmd_t current_key = NONE;
 
     if (NextKeyQueue) {
-        xQueueReceive(NextKeyQueue, &current_key, 0);
+        while (xQueueReceive(NextKeyQueue, &current_key, 0) == pdTRUE) {
+        }
     }
-
     if (current_key == INC) {
-
     		mothership.inc = 1;
     		mothership.dec = 0;
-
     }
     else if (current_key == DEC) {
-
     		mothership.inc = 0;
     		mothership.dec = 1;
-
     }
     else if (current_key == NONE) {
-
     		mothership.inc = 0;
     		mothership.dec = 0;
-
     }
     return 0;
 }
@@ -389,7 +383,7 @@ void init_game_wrapper(double* speed)
 			game_wrapper.speed += 0.005;
 			game_wrapper.level++;
 			game_wrapper.get_extra_life_scores += 10;
-			check_for_extra_life();
+			vCheckForExtraLife();
 			game_wrapper.next_level_flag = 0;
 //			game_wrapper.game_message = "ALIENS WON. BACK TO MENUE IN";
 			sprintf(game_wrapper.game_message, 	"YOU WON. NEXT LEVEL IN");
@@ -490,19 +484,16 @@ void move_alien_bullet(bullet_t* bullet, short speed)
 {
 	if(bullet->alive)
 	{
-
-		if (bullet->pos_y < SCREEN_HEIGHT)
-		{
+		//move bullet
+		if (bullet->pos_y < SCREEN_HEIGHT) {
 			bullet->pos_y += speed;
 		}
-		else
-		{
+		else {
 			// delete bullet if out of screen
 			bullet->alive = 0;
 			bullet->pos_y = 0;
 			bullet->pos_x = 0;
 		}
-
 	}
 }
 
@@ -647,25 +638,18 @@ void handle_player_input(unsigned char* moving_left, unsigned char* moving_right
 }
 
 
-void move_invaders(unsigned char* invaders_won, TickType_t * last_time)
+void vMoveInvaders(unsigned char* invaders_won, TickType_t * last_time)
 {
 
-//	unsigned char maxFront = 0;
-
-	// move invaders
 	if (xSemaphoreTake(invaders.lock, 0) == pdTRUE)
 	{
-
+		// move invaders
 		TickType_t current_time = xTaskGetTickCount();
 		invaders.float_pos_x += invaders.speed * (current_time - *last_time);
 		invaders.pos_x = round(invaders.float_pos_x);
 		*last_time = current_time;
 
-//		prints("pos_x: %d \n", invaders.pos_x);
-//		// fflush(stdout);
-
-
-
+		// check left and right border
 		if (invaders.direction == right && invaders.pos_x + ALIEN_SIZE_X + invaders.last_column_right * ALIEN_DISTANCE > RIGHT_BORDER)
 		{
 			invaders.pos_y += INVADERS_STEP_IN_Y;
@@ -679,112 +663,106 @@ void move_invaders(unsigned char* invaders_won, TickType_t * last_time)
 			invaders.direction = right;
 		}
 
-
+		// check if invaders reached bottom line
 		if (invaders.pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * invaders.maxFront > BUNKER_POS_Y )
 		{
-//	    		prints("you lost !!!\n");
 			*invaders_won = 1;
 		}
 
-
 		move_alien_bullet(&invaders.bullet, ALIEN_BULLET_SPEED);
 
-		xSemaphoreGive(invaders.lock);
 	}
+	xSemaphoreGive(invaders.lock);
 
 }
 
 
 
-void move_mothership(TickType_t* last_time_mothership)
+void vMoveMothership(TickType_t* last_time_mothership)
 {
 	if (xSemaphoreTake(mothership.lock, 0) == pdTRUE)
 	{
-
-		unsigned short mothership_pos_x = mothership.pos_x;
-
-		if(mothership.AI_control) xCheckPongUDPInput(&mothership_pos_x);
-
-
+		// check AI commands from mothership
+		if(mothership.AI_control && mothership.alive) xCheckMothershipUDPInput();
 
 		if(mothership.alive)
 		{
-			if(!mothership.AI_control)
-			{
+			// Single Player Mode
+			if(!mothership.AI_control){
 				mothership.inc = 1;
 				mothership.dec = 0;
 			}
 
-			if(mothership.inc)
-			{
-				mothership.pos_x += 3;
+			// move mothership
+			if(mothership.inc) {
+				mothership.pos_x += MOTHERSHIP_SPEED;
 			}
-			else if(mothership.dec)
-			{
-				mothership.pos_x -= 3;
+			else if(mothership.dec) {
+				mothership.pos_x -= MOTHERSHIP_SPEED;
 			}
 
-			if(mothership.pos_x > SCREEN_WIDTH )
+			// check if mothership reaches end of screen right hand side
+			if(mothership.pos_x > SCREEN_WIDTH)
 			{
-				if(mothership.AI_control)
-				{
+				if(mothership.AI_control) {
 					mothership.pos_x = -MOTHERSHIP_SIZE_X;
 				}
-				else
-				{
+				else {
 					mothership.alive = 0;
 					*last_time_mothership = xTaskGetTickCount();
 				}
 			}
+
+			// check if mothership reaches end of screen left hand side
 			if(mothership.pos_x < -MOTHERSHIP_SIZE_X)
 			{
-				if(mothership.AI_control)
-				{
+				if(mothership.AI_control) {
 					mothership.pos_x = SCREEN_WIDTH;
 				}
-				else
-				{
+				else {
 					mothership.alive = 0;
 					*last_time_mothership = xTaskGetTickCount();
 				}
 			}
 		}
+		else {
 
-		// send mothership pos x to udp handler
-		xQueueSend(MothershipXQueue, (void *)&mothership.pos_x, 0);
-
-		xSemaphoreGive(mothership.lock);
-	}
-
-}
-
-
-
-void handle_mothership_appearance(TickType_t last_time_mothership)
-{
-
-	if (xSemaphoreTake(mothership.lock, 0) == pdTRUE)
-	{
-//		prints("handle mothership appearance %d, %d, %d\n", score, *last_time_mothership, invaders_pos_y);
-//		// fflush(stdout);
-
-		if(mothership.alive == 0)
-		{
-			if(xTaskGetTickCount() - last_time_mothership > pdMS_TO_TICKS(WAITING_TIME_FOR_MOTHERSHIP))
+			// revive mothership
+			if(xTaskGetTickCount() - *last_time_mothership > pdMS_TO_TICKS(WAITING_TIME_FOR_MOTHERSHIP))
 			{
-				prints("mothership got released!!\n");
 				mothership.alive = 1;
 				mothership.pos_x = -MOTHERSHIP_SIZE_X;
 			}
 		}
 
-
-		xSemaphoreGive(mothership.lock);
+		// send mothership pos x to udp handler
+		xQueueSend(MothershipXQueue, (void *)&mothership.pos_x, 0);
 	}
+	xSemaphoreGive(mothership.lock);
+
 }
 
 
-void vkill_Alien(unsigned char y, unsigned char x, unsigned char * player_won)
+void vKillPlayerBullet(void)
+{
+	if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
+	{
+		player.bullet.alive = 0;
+	}
+	xSemaphoreGive(player.lock);
+}
+
+void vKillInvadersBullet(void)
+{
+	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
+	{
+		invaders.bullet.alive = 0;
+	}
+	xSemaphoreGive(invaders.lock);
+}
+
+
+void vKillAlien(unsigned char y, unsigned char x, unsigned char * player_won)
 {
 	unsigned char killed = 0;
 
@@ -793,229 +771,244 @@ void vkill_Alien(unsigned char y, unsigned char x, unsigned char * player_won)
 		if(invaders.enemy[y][x].alive)
 		{
 			invaders.enemy[y][x].alive = 0;
+			killed = 1;
+			invaders.killed ++;
 
-			// decreasing front
-			if(invaders.front[x] >= 0) invaders.front[x] --;
+			// adjust front
+			for(unsigned char u = NUMBER_OF_ALIENS_Y - 1; u >= 0; u--)
+			{
+				if(invaders.enemy[u][x].alive)
+				{
+					invaders.front[x] = u;
+					break;
+				}
+			}
 
 			// adjust right and left border of invaders block
 			if(invaders.front[x] < 0)
 			{
 				for( unsigned char r = 0; r < NUMBER_OF_ALIENS_X; r++)
 				{
-					if(invaders.front[r] < 0) invaders.last_column_left = r;
-					else break;
+					// check if far left column still exists
+					if(invaders.front[r] < 0)
+						invaders.last_column_left = r;
+					else
+						break;
 				}
 				for( unsigned char t = NUMBER_OF_ALIENS_X - 1; t >= 0; t--)
 				{
+					// check if far right column still exists
 					if(invaders.front[t] < 0)
-					{
 						invaders.last_column_right = t;
-					}
 					else
-					{
-						prints("t == %d\n", t);
 						break;
-					}
 				}
 			}
-
 
 			// check where the invaders block ends down side
 			invaders.maxFront = 0;
 			for(unsigned char c = 0; c < NUMBER_OF_ALIENS_X; c++)
 			{
 				if(invaders.maxFront < invaders.front[c])
-				{
 					invaders.maxFront = invaders.front[c];
-				}
+
 			}
 
-			invaders.killed ++;
-
 			// increase speed
-			if(invaders.direction == right) invaders.speed += INVADERS_MAX_SPEED / (NUMBER_OF_ALIENS_X * NUMBER_OF_ALIENS_Y);
-			else if(invaders.direction == left) invaders.speed -= INVADERS_MAX_SPEED / (NUMBER_OF_ALIENS_X * NUMBER_OF_ALIENS_Y);
-
-			killed = 1;
+			if(invaders.direction == right)
+				invaders.speed += INVADERS_MAX_SPEED / (NUMBER_OF_ALIENS_X * NUMBER_OF_ALIENS_Y);
+			else if(invaders.direction == left)
+				invaders.speed -= INVADERS_MAX_SPEED / (NUMBER_OF_ALIENS_X * NUMBER_OF_ALIENS_Y);
 
 			// check if all aliens killed
 			if(invaders.killed >= NUMBER_OF_ALIENS_X * NUMBER_OF_ALIENS_Y)
 			{
 				*player_won = 1;
-				prints("player won\n");
-				// fflush(stdout);
 			}
 
-			prints("max front %d\n", invaders.maxFront);
-			prints("invaders front %d\n", invaders.front[x]);
-			prints("last column left %d\n", invaders.last_column_left);
-			prints("last column right %d\n", invaders.last_column_right);
-			prints("invader speed: %f\n", invaders.speed);
-			prints("killed: %d,%d front: %d total: %d\n", y,x,invaders.front[x],invaders.killed);
-			// fflush(stdout);
+//			prints("max front %d\n", invaders.maxFront);
+//			prints("invaders front %d\n", invaders.front[x]);
+//			prints("last column left %d\n", invaders.last_column_left);
+//			prints("last column right %d\n", invaders.last_column_right);
+//			prints("invader speed: %f\n", invaders.speed);
+//			prints("killed: %d,%d front: %d total: %d\n", y,x,invaders.front[x],invaders.killed);
 		}
-
-		xSemaphoreGive(invaders.lock);
 	}
+	xSemaphoreGive(invaders.lock);
 
 	if (killed)
 	{
 		// handle scoring
 		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 		{
-			if(y == 0)
+			if(y == 0) 	// Alien Type 1
 			{
-				game_wrapper.score += 30;
-				game_wrapper.get_extra_life_scores += 3;
+				game_wrapper.score += ALIEN_TYPE_1_SCORE_REWARD;
+				game_wrapper.get_extra_life_scores += ALIEN_TYPE_1_SCORE_REWARD / 10;
 			}
-			else if(y < 3 && y > 0)
+			else if(y < 3 && y > 0)		// Alien Type 2
 			{
-				game_wrapper.score += 20;
-				game_wrapper.get_extra_life_scores += 2;
+				game_wrapper.score += ALIEN_TYPE_2_SCORE_REWARD;
+				game_wrapper.get_extra_life_scores += ALIEN_TYPE_2_SCORE_REWARD / 10;
 			}
-			else if(y < NUMBER_OF_ALIENS_Y && y > 2)
+			else if(y < NUMBER_OF_ALIENS_Y && y > 2)	// Alien Type 3
 			{
-				game_wrapper.score += 10;
-				game_wrapper.get_extra_life_scores += 1;
+				game_wrapper.score += ALIEN_TYPE_3_SCORE_REWARD;
+				game_wrapper.get_extra_life_scores += ALIEN_TYPE_3_SCORE_REWARD / 10;
 			}
 
-			prints("score: %d\n", game_wrapper.score);
-			// fflush(stdout);
-
-			check_for_extra_life();
-
-			xSemaphoreGive(game_wrapper.lock);
+			vCheckForExtraLife();
 		}
+		xSemaphoreGive(game_wrapper.lock);
 
-		if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
-		{
-			player.bullet.alive = 0;
-			xSemaphoreGive(player.lock);
-		}
+		vKillPlayerBullet();
 	}
-
-
-
 }
 
 
-void vkill_Mothership(TickType_t * last_time_mothership)
+void vKillMothership(TickType_t * last_time_mothership)
 {
 	if(mothership.alive)
 	{
 		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 		{
-			game_wrapper.score += 50;
-			game_wrapper.get_extra_life_scores += 5;
+			game_wrapper.score += MOTHERSHIP_SCORE_REWARD;
+			game_wrapper.get_extra_life_scores += MOTHERSHIP_SCORE_REWARD / 10;
 
-			check_for_extra_life();
-
-			xSemaphoreGive(game_wrapper.lock);
+			vCheckForExtraLife();
 		}
+		xSemaphoreGive(game_wrapper.lock);
 
-		if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
-		{
-			player.bullet.alive = 0;
+		vKillPlayerBullet();
 
-			xSemaphoreGive(player.lock);
-		}
-
-		*last_time_mothership = xTaskGetTickCount();
 		mothership.alive = 0;
+		*last_time_mothership = xTaskGetTickCount();
 	}
-
 }
 
 
 
 
-void destruct_bunker_block_player(short s, short player_front, short t)
+void vDestructBunkerBlockPlayerSide(short bunkerNumber, short player_front, short xBlock)
 {
 
-	if(bunker.bunkers[s].block_destruction_state[ player_front ][ t ] > 0)
+	// check bunker block state
+	if(bunker.bunkers[bunkerNumber].block_destruction_state[ player_front ][ xBlock ] > 0)
 	{
-		bunker.bunkers[s].block_destruction_state[ player_front ][ t ]--;
+		bunker.bunkers[bunkerNumber].block_destruction_state[ player_front ][ xBlock ]--;
 	}
-
-	prints("player_front: %d\n",player_front);
-
-	if(bunker.bunkers[s].block_destruction_state[player_front][t] == 0)
+	// if bunker block is destroyed adjust front
+	else if(bunker.bunkers[bunkerNumber].block_destruction_state[player_front][xBlock] == 0)
 	{
 		if(player_front > 0)
-		{
-			bunker.bunkers[s].player_front[t]--;
-		}
-
+			bunker.bunkers[bunkerNumber].player_front[xBlock]--;
 	}
 
-
-	if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
-	{
-		player.bullet.alive = 0;
-		xSemaphoreGive(player.lock);
-	}
-
+	vKillPlayerBullet();
 }
 
 
-void destruct_bunker_block_alien(short s, short aliens_front, short t)
+void vDestructBunkerBlockInvadersSide(short bunkerNumber, short aliens_front, short xBlock)
 {
-
-	if(bunker.bunkers[s].block_destruction_state[ aliens_front ][ t ] > 0)
+	// check bunker block state
+	if(bunker.bunkers[bunkerNumber].block_destruction_state[ aliens_front ][ xBlock ] > 0)
 	{
-		// maybe invaders should destrct a block by one shot
-		bunker.bunkers[s].block_destruction_state[ aliens_front ][ t ] = 0;
+		bunker.bunkers[bunkerNumber].block_destruction_state[ aliens_front ][ xBlock ] = 0;
 	}
 
-	prints("aliens_front: %d\n",aliens_front);
-
-	if(bunker.bunkers[s].block_destruction_state[aliens_front][t] == 0)
+	// if bunker block is destroyed adjust front
+	if(bunker.bunkers[bunkerNumber].block_destruction_state[aliens_front][xBlock] == 0)
 	{
 		if(aliens_front < NUM_BUNKER_BLOCK_Y - 1)
-		{
-			bunker.bunkers[s].aliens_front[t]++;
-		}
-
+			bunker.bunkers[bunkerNumber].aliens_front[xBlock]++;
 	}
 
-
-	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
-	{
-		invaders.bullet.alive = 0;
-		xSemaphoreGive(invaders.lock);
-	}
-
+	vKillInvadersBullet();
 }
 
 
 
-void player_dies(unsigned char *player_dead)
+void vPlayerGotHit(unsigned char *player_dead)
 {
-
-	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
-	{
-		invaders.bullet.alive = 0;
-
-		xSemaphoreGive(invaders.lock);
-	}
+	vKillInvadersBullet();
 
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 	{
-		if(game_wrapper.infinite_life_flag == 0)
-		{
+		if(!game_wrapper.infinite_life_flag) {
 			*player_dead = 1;
 		}
-		xSemaphoreGive(game_wrapper.lock);
 	}
-
-
-	prints("player got hit\n");
-	// fflush(stdout);
+	xSemaphoreGive(game_wrapper.lock);
 }
 
 
 
-void check_aliens_bullet_collision(unsigned char *player_dead)
+
+void vCheckBulletBulletCollision(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_bullet_pos_x, short player_bullet_pos_y)
+{
+	// check if player bullet hit invaders bullet
+
+	if(invaders_bullet_pos_x > player_bullet_pos_x - BULLET_SIZE_X && invaders_bullet_pos_x < player_bullet_pos_x + BULLET_SIZE_X)
+	{
+		// Check if in future (3 Bullet size y ahead) it will be behind
+		if(invaders_bullet_pos_y + BULLET_SIZE_Y * 3 > player_bullet_pos_y)
+		{
+			vKillPlayerBullet();
+			vKillInvadersBullet();
+		}
+	}
+}
+
+void vCheckIfPlayerGotHit(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_pos_x, short player_pos_y, unsigned char *player_dead)
+{
+	// check if bullet reached player y
+	if (invaders_bullet_pos_y > player_pos_y)
+	{
+//		prints("player bullet pos x: %d, player pos x: %d\n", invaders_bullet_pos_x, player_pos_x);
+		if (invaders_bullet_pos_x >= player_pos_x - BULLET_SIZE_X && invaders_bullet_pos_x <= player_pos_x + PLAYER_SIZE_X)
+		{
+			vPlayerGotHit(player_dead);
+		}
+	}
+}
+
+void vCheckIfBunkerGotHit(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_pos_x, short player_pos_y)
+{
+	if (xSemaphoreTake(bunker.lock, portMAX_DELAY) == pdTRUE)
+	{
+		// check if bunker reached and not already passed
+		if(invaders_bullet_pos_y > bunker.pos_y - BULLET_SIZE_Y && invaders_bullet_pos_y < bunker.pos_y + BUNKER_BLOCK_SIZE_Y * NUM_BUNKER_BLOCK_Y )
+		{
+
+			for(short bunkerNumber = 0; bunkerNumber < 4; bunkerNumber++)
+			{
+				// check at which bunker
+				if(invaders_bullet_pos_x > bunker.bunkers[bunkerNumber].pos_x && invaders_bullet_pos_x < bunker.bunkers[bunkerNumber].pos_x + BUNKER_BLOCK_SIZE_X*NUM_BUNKER_BLOCK_X)
+				{
+					for( short xBlock = 0; xBlock < NUM_BUNKER_BLOCK_X; xBlock++)
+					{
+						// check column of bunker
+						if((invaders_bullet_pos_x > bunker.bunkers[bunkerNumber].pos_x + xBlock * BUNKER_BLOCK_SIZE_X - BULLET_SIZE_X) && (invaders_bullet_pos_x < bunker.bunkers[bunkerNumber].pos_x + BUNKER_BLOCK_SIZE_X + xBlock * BUNKER_BLOCK_SIZE_X ))
+						{
+							if(bunker.bunkers[bunkerNumber].block_destruction_state[bunker.bunkers[bunkerNumber].player_front[xBlock]][xBlock] > 0)
+							{
+								vDestructBunkerBlockInvadersSide(bunkerNumber, bunker.bunkers[bunkerNumber].aliens_front[xBlock], xBlock);
+							}
+						}
+//							prints("x column: %d\n",t);
+					}
+//						prints("bunker number: %d\n",s);
+				}
+			}
+		}
+	}
+	xSemaphoreGive(bunker.lock);
+}
+
+
+
+
+void vCheckAliensBulletCollision(unsigned char *player_dead)
 {
 	short player_pos_x = 0;
 	short player_pos_y = 0;
@@ -1029,18 +1022,19 @@ void check_aliens_bullet_collision(unsigned char *player_dead)
 	short player_bullet_pos_x = 0;
 	short player_bullet_pos_y = 0;
 
-
+	// fetch invaders bullet position
 	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
 	{
 		invaders_bullet_alive = invaders.bullet.alive;
 		invaders_bullet_pos_y = invaders.bullet.pos_y;
 		invaders_bullet_pos_x = invaders.bullet.pos_x;
-		xSemaphoreGive(invaders.lock);
 	}
+	xSemaphoreGive(invaders.lock);
 
 
 	if(invaders_bullet_alive)
 	{
+		// fetch player position and player bullet position
 		if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
 		{
 			player_pos_x = player.pos_x;
@@ -1048,91 +1042,93 @@ void check_aliens_bullet_collision(unsigned char *player_dead)
 			player_bullet_alive = player.bullet.alive;
 			player_bullet_pos_x = player.bullet.pos_x;
 			player_bullet_pos_y = player.bullet.pos_y;
-			xSemaphoreGive(player.lock);
 		}
+		xSemaphoreGive(player.lock);
 
-
-		// check if player bullet crashes invaders bullet
 		if(player_bullet_alive)
-		{
-			if(invaders_bullet_pos_x > player_bullet_pos_x - BULLET_SIZE_X && invaders_bullet_pos_x < player_bullet_pos_x + BULLET_SIZE_X * 2)
-			{
-				prints("bullet crash xxxxxxxxx!!\n");
-				// fflush(stdout);
+			vCheckBulletBulletCollision(invaders_bullet_pos_x, invaders_bullet_pos_y, player_bullet_pos_x, player_bullet_pos_y);
 
-				if(invaders_bullet_pos_y + BULLET_SIZE_Y * 3 > player_bullet_pos_y)
-				{
-					prints("bullet crash yyyyyyyyy!!\n");
-					// fflush(stdout);
-
-					if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
-					{
-						player.bullet.alive = 0;
-						xSemaphoreGive(player.lock);
-					}
-
-					if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
-					{
-						invaders.bullet.alive = 0;
-						xSemaphoreGive(invaders.lock);
-					}
-
-					prints("bullet crash!!\n");
-					// fflush(stdout);
-				}
-			}
-		}
-
-
-		// check if bullet reached player y
-		if (invaders_bullet_pos_y > player_pos_y)
-		{
-			prints("player bullet pos x: %d, player pos x: %d\n", invaders_bullet_pos_x, player_pos_x);
-			if (invaders_bullet_pos_x - BULLET_SIZE_X >= player_pos_x && invaders_bullet_pos_x <= player_pos_x + PLAYER_SIZE_X)
-			{
-				player_dies(player_dead);
-			}
-		}
-
-		if (xSemaphoreTake(bunker.lock, portMAX_DELAY) == pdTRUE)
-		{
-			// check if bunker reached and not already passed
-			if(invaders_bullet_pos_y > bunker.pos_y - BULLET_SIZE_Y && invaders_bullet_pos_y < bunker.pos_y + BUNKER_BLOCK_SIZE_Y * NUM_BUNKER_BLOCK_Y  )
-			{
-
-				for(short s = 0; s < 4; s++)
-				{
-					// check at which bunker
-					if(invaders_bullet_pos_x > bunker.bunkers[s].pos_x && invaders_bullet_pos_x < bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X*NUM_BUNKER_BLOCK_X)
-					{
-						for( short t = 0; t < NUM_BUNKER_BLOCK_X; t++)
-						{
-							// check column
-							if((invaders_bullet_pos_x > bunker.bunkers[s].pos_x + t * BUNKER_BLOCK_SIZE_X - BULLET_SIZE_X) && (invaders_bullet_pos_x < bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X + t * BUNKER_BLOCK_SIZE_X ))
-							{
-								if(bunker.bunkers[s].block_destruction_state[bunker.bunkers[s].player_front[t]][t] > 0)
-								{
-									destruct_bunker_block_alien(s, bunker.bunkers[s].aliens_front[t], t);
-								}
-							}
-
-//							prints("x column: %d\n",t);
-						}
-//						prints("bunker number: %d\n",s);
-					}
-				}
-			}
-
-			xSemaphoreGive(bunker.lock);
-		}
-
-
+		vCheckIfPlayerGotHit(invaders_bullet_pos_x, invaders_bullet_pos_y, player_pos_x, player_pos_y, player_dead);
+		vCheckIfBunkerGotHit(invaders_bullet_pos_x, invaders_bullet_pos_y, player_pos_x, player_pos_y);
 	}
-
 }
 
 
-void check_player_bullet_collision(unsigned char * player_won, TickType_t * last_time_mothership)
+
+void vCheckIfInvadersGotHit(short invaders_pos_x, short invaders_pos_y, short player_bullet_pos_x, short player_bullet_pos_y, unsigned char * player_won)
+{
+	// check if invaders block reached and not already passed
+	if(player_bullet_pos_y < invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * NUMBER_OF_ALIENS_Y  && player_bullet_pos_y > invaders_pos_y - INVADERS_SIZE_Y / 2)
+	{
+		for(unsigned char xAlien = 0; xAlien < NUMBER_OF_ALIENS_X; xAlien++)
+		{
+			// for every alien check x
+			if( (player_bullet_pos_x > invaders_pos_x + xAlien * ALIEN_DISTANCE - BULLET_SIZE_X) && (player_bullet_pos_x < invaders_pos_x + ALIEN_SIZE_X + xAlien * ALIEN_DISTANCE ))
+			{
+				// for every alien whose x the bullet is, check all y alien
+				for(unsigned char yAlien = invaders_front[xAlien]; yAlien >= 0; yAlien--)
+				{
+					if ((player_bullet_pos_y < invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * yAlien) && (player_bullet_pos_y > invaders_pos_y + ALIEN_DISTANCE * yAlien ))
+					{
+						vKillAlien(yAlien, xAlien, player_won);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void vCheckIfBunkerGotHit(short player_bullet_pos_x, short player_bullet_pos_y)
+{
+	if (xSemaphoreTake(bunker.lock, portMAX_DELAY) == pdTRUE)
+	{
+		// check if bunker reached and not already passed
+		if(player_bullet_pos_y < bunker.pos_y + BUNKER_BLOCK_SIZE_Y * NUM_BUNKER_BLOCK_Y && player_bullet_pos_y > bunker.pos_y - BULLET_SIZE_Y)
+		{
+
+			for(short bunkerNumber = 0; bunkerNumber < 4; bunkerNumber++)
+			{
+				// check at which bunker
+				if(player_bullet_pos_x > bunker.bunkers[bunkerNumber].pos_x && player_bullet_pos_x < bunker.bunkers[bunkerNumber].pos_x + BUNKER_BLOCK_SIZE_X*NUM_BUNKER_BLOCK_X)
+				{
+					for( short xBlock = 0; xBlock < NUM_BUNKER_BLOCK_X; xBlock++)
+					{
+						// check column
+						if((player_bullet_pos_x > bunker.bunkers[bunkerNumber].pos_x + xBlock * BUNKER_BLOCK_SIZE_X - BULLET_SIZE_X) && (player_bullet_pos_x < bunker.bunkers[bunkerNumber].pos_x + BUNKER_BLOCK_SIZE_X + xBlock * BUNKER_BLOCK_SIZE_X ))
+						{
+							if(bunker.bunkers[bunkerNumber].block_destruction_state[bunker.bunkers[bunkerNumber].player_front[xBlock]][xBlock] > 0)
+							{
+								vDestructBunkerBlockPlayerSide(bunkerNumber, bunker.bunkers[bunkerNumber].player_front[xBlock], xBlock);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	xSemaphoreGive(bunker.lock);
+}
+
+
+void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos_y, TickType_t * last_time_mothership)
+{
+	if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
+	{
+		// check if mothership reached and not already passed
+		if(player_bullet_pos_y < MOTHERSHIP_POS_Y + MOTHERSHIP_SIZE_Y && player_bullet_pos_y > MOTHERSHIP_POS_Y - BULLET_SIZE_Y*2)
+		{
+			if(player_bullet_pos_x > mothership.pos_x - BULLET_SIZE_X && player_bullet_pos_x < mothership.pos_x + MOTHERSHIP_SIZE_X)
+			{
+				vKillMothership(last_time_mothership);
+			}
+		}
+	}
+	xSemaphoreGive(mothership.lock);
+}
+
+
+void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_time_mothership)
 {
 	short invaders_pos_y = 0;
 	short invaders_pos_x = 0;
@@ -1142,17 +1138,18 @@ void check_player_bullet_collision(unsigned char * player_won, TickType_t * last
 	short player_bullet_pos_y = SCREEN_HEIGHT;
 	short player_bullet_pos_x = 0;
 
-
+	// fetch player bullet information
 	if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
 	{
 		player_bullet_alive = player.bullet.alive;
 		player_bullet_pos_y = player.bullet.pos_y;
 		player_bullet_pos_x = player.bullet.pos_x;
-		xSemaphoreGive(player.lock);
 	}
+	xSemaphoreGive(player.lock);
 
 	if(player_bullet_alive)
 	{
+		// fetch invaders information
 		if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
 		{
 			invaders_pos_y = invaders.pos_y;
@@ -1161,90 +1158,12 @@ void check_player_bullet_collision(unsigned char * player_won, TickType_t * last
 			{
 				invaders_front[u] = invaders.front[u];
 			}
-			xSemaphoreGive(invaders.lock);
 		}
+		xSemaphoreGive(invaders.lock);
 
-
-		// check if invaders block reached and not already passed
-		if(player_bullet_pos_y < invaders_pos_y + ALIEN_DISTANCE * NUMBER_OF_ALIENS_Y * 1  + ALIEN_SIZE_Y && player_bullet_pos_y > invaders_pos_y - INVADERS_SIZE_Y / 2)
-		{
-			for(unsigned char i = 0; i < NUMBER_OF_ALIENS_X; i++)
-			{
-				// for every alien check x
-				if( (player_bullet_pos_x > invaders_pos_x  + i * ALIEN_DISTANCE - BULLET_SIZE_X) && (player_bullet_pos_x < invaders_pos_x + i * ALIEN_DISTANCE + ALIEN_SIZE_X ))
-				{
-					// for every alien whose x the bullet is, check the front alien && check if column still exists
-					if (player_bullet_pos_y < invaders_pos_y + ALIEN_DISTANCE * invaders_front[i] + ALIEN_SIZE_Y &&
-//							player_bullet_pos_y > invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * invaders_front[i - 1] &&
-							invaders_front[i] >= 0)
-					{
-						vkill_Alien(invaders_front[i],i, player_won);
-					}
-
-//					for(short u = NUMBER_OF_ALIENS_Y - 1; u >= 0; u--)
-//					{
-//						if(player_bullet_pos_y < invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * u && player_bullet_pos_y > invaders_pos_y + ALIEN_SIZE_Y + ALIEN_DISTANCE * u - ALIEN_SIZE_Y - ALIEN_DISTANCE / 2)
-//						{
-//							vkill_Alien(u,i, player_won);
-//						}
-//					}
-				}
-			}
-		}
-
-
-
-		if (xSemaphoreTake(bunker.lock, portMAX_DELAY) == pdTRUE)
-		{
-			// check if bunker reached and not already passed
-			if(player_bullet_pos_y < bunker.pos_y + BUNKER_BLOCK_SIZE_Y*NUM_BUNKER_BLOCK_Y && player_bullet_pos_y > bunker.pos_y - BULLET_SIZE_Y)
-			{
-
-				for(short s = 0; s < 4; s++)
-				{
-					// check at which bunker
-					if(player_bullet_pos_x > bunker.bunkers[s].pos_x && player_bullet_pos_x < bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X*NUM_BUNKER_BLOCK_X)
-					{
-						for( short t = 0; t < NUM_BUNKER_BLOCK_X; t++)
-						{
-
-
-							// check column
-							if((player_bullet_pos_x > bunker.bunkers[s].pos_x + t * BUNKER_BLOCK_SIZE_X - BULLET_SIZE_X) && (player_bullet_pos_x < bunker.bunkers[s].pos_x + BUNKER_BLOCK_SIZE_X + t * BUNKER_BLOCK_SIZE_X ))
-							{
-								if(bunker.bunkers[s].block_destruction_state[bunker.bunkers[s].player_front[t]][t] > 0)
-								{
-									destruct_bunker_block_player(s, bunker.bunkers[s].player_front[t], t);
-								}
-
-							}
-
-							prints("x column: %d\n",t);
-						}
-						prints("bunker number: %d\n",s);
-					}
-				}
-			}
-
-			xSemaphoreGive(bunker.lock);
-		}
-
-
-		if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
-		{
-			// check if mothership reached and not already passed
-			if(player_bullet_pos_y < MOTHERSHIP_POS_Y + MOTHERSHIP_SIZE_Y && player_bullet_pos_y > MOTHERSHIP_POS_Y - BULLET_SIZE_Y*2)
-			{
-				if(player_bullet_pos_x > mothership.pos_x && player_bullet_pos_x < mothership.pos_x + MOTHERSHIP_SIZE_X)
-				{
-					vkill_Mothership(last_time_mothership);
-				}
-
-			}
-
-			xSemaphoreGive(mothership.lock);
-		}
-
+		vCheckIfInvadersGotHit(invaders_pos_x, invaders_pos_y, player_bullet_pos_x, player_bullet_pos_y, player_won);
+		vCheckIfBunkerGotHit(player_bullet_pos_x, player_bullet_pos_y);
+		vCheckIfMothershipGotHit(player_bullet_pos_x, player_bullet_pos_y, last_time_mothership);
 	}
 
 }
@@ -1324,21 +1243,19 @@ void handle_end_match(end_game_reason_t reason)
 
 
 
-void check_for_extra_life()
+void vCheckForExtraLife()
 {
 	if(game_wrapper.get_extra_life_scores > 150)
 	{
 		if(game_wrapper.remaining_life < 3)
-		{
 			game_wrapper.remaining_life++;
-		}
 
 		game_wrapper.get_extra_life_scores = 0;
 	}
 }
 
 
-void vGame_Handler(void *pvParameters)
+void vGameHandlerTask(void *pvParameters)
 {
 
 	unsigned char invaders_won = 0;
@@ -1356,15 +1273,16 @@ void vGame_Handler(void *pvParameters)
 
 
 		set_new_last_time_resume(&invaders_resume, &last_time, &last_time_mothership);
-		move_invaders(&invaders_won, &last_time);
+
+		vMoveInvaders(&invaders_won, &last_time);
 
 		// mothership
 		handle_mothership_appearance(last_time_mothership);
-		move_mothership(&last_time_mothership);
+		vMoveMothership(&last_time_mothership);
 
 		handle_player_input(&moving_left, &moving_right);
-		check_player_bullet_collision(&player_won, &last_time_mothership);
-		check_aliens_bullet_collision(&player_dead);
+		vCheckPlayerBulletCollision(&player_won, &last_time_mothership);
+		vCheckAliensBulletCollision(&player_dead);
 		Alien_shoots();
 
 		if(player_dead)
@@ -1467,11 +1385,11 @@ int init_space_invaders_handler(void)
         goto err_Init_Game;
     }
 
-    if (xTaskCreate(vGame_Handler, "Game_Handler",
+    if (xTaskCreate(vGameHandlerTask, "GameHandlerTask",
     						mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
-    						&Game_Handler) != pdPASS) {
-        PRINT_TASK_ERROR("Game_Handler");
-        goto err_Game_Handler;
+    						&GameHandlerTask) != pdPASS) {
+        PRINT_TASK_ERROR("GameHandlerTask");
+        goto err_GameHandlerTask;
     }
 
     if (xTaskCreate(vDrawPopUpPageTask, "DrawPopUpPageTask",
@@ -1489,7 +1407,7 @@ int init_space_invaders_handler(void)
     }
 
 
-    vTaskSuspend(Game_Handler);
+    vTaskSuspend(GameHandlerTask);
     vTaskSuspend(Init_Game);
     vTaskSuspend(UDPControlTask);
     vTaskSuspend(DrawPopUpPageTask);
@@ -1512,8 +1430,8 @@ err_bunker_lock:
 err_game_wrapper_lock:
 	vSemaphoreDelete(mothership.lock);
 err_mothership_lock:
-	vTaskDelete(Game_Handler);
-err_Game_Handler:
+	vTaskDelete(GameHandlerTask);
+err_GameHandlerTask:
 	vTaskDelete(Init_Game);
 err_Init_Game:
 
