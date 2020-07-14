@@ -80,7 +80,7 @@ unsigned char xGetState(void)
 {
 	unsigned char my_state = 0;
 
-    if (xSemaphoreTake(state.lock, 0) == pdTRUE)
+    if (xSemaphoreTake(state.lock, portMAX_DELAY) == pdTRUE)
     {
         my_state = state.currState;
     }
@@ -91,7 +91,7 @@ unsigned char xGetState(void)
 
 void vSetState(unsigned char currState)
 {
-    if (xSemaphoreTake(state.lock, 0) == pdTRUE)
+    if (xSemaphoreTake(state.lock, portMAX_DELAY) == pdTRUE)
     {
         state.currState = currState;
     }
@@ -177,42 +177,42 @@ initial_state:
         if (state_changed) {
             switch (current_state) {
                 case STATE_ONE:
-                	prints("hey i am in state 1 (gamestate)\n");
+                	prints("hey i am in state 1 (main lobby)\n");
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
-                    if (Game_Handler) vTaskSuspend(Game_Handler);
+                    if (GameHandlerTask) vTaskSuspend(GameHandlerTask);
                     if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
                     if (AlienShootTask) vTaskSuspend(AlienShootTask);
-                    if (Init_Game) vTaskSuspend(Init_Game);
+                    if (InitGameTaks) vTaskSuspend(InitGameTaks);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (DrawLobbyMainTask) vTaskResume(DrawLobbyMainTask);
                     state_changed = 0;
 
                     break;
                 case STATE_TWO:
-                	prints("hey i am in state 2 (gamestate)\n");
+                	prints("hey i am in state 2 (cheat mode)\n");
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
-                    if (Game_Handler) vTaskSuspend(Game_Handler);
+                    if (GameHandlerTask) vTaskSuspend(GameHandlerTask);
                     if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
                     if (AlienShootTask) vTaskSuspend(AlienShootTask);
-                    if (Init_Game) vTaskSuspend(Init_Game);
+                    if (InitGameTaks) vTaskSuspend(InitGameTaks);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (DrawLobbyCheatTask) vTaskResume(DrawLobbyCheatTask);
                     state_changed = 0;
 
                     break;
                 case STATE_THREE:
-                	prints("hey i am in state 3 (gamestate)\n");
+                	prints("hey i am in state 3 (highscore)\n");
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
-                    if (Game_Handler) vTaskSuspend(Game_Handler);
+                    if (GameHandlerTask) vTaskSuspend(GameHandlerTask);
                     if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
                     if (AlienShootTask) vTaskSuspend(AlienShootTask);
-                    if (Init_Game) vTaskSuspend(Init_Game);
+                    if (InitGameTaks) vTaskSuspend(InitGameTaks);
                     if (UDPControlTask) vTaskSuspend(UDPControlTask);
                     if (DrawLobbyHighscoreTask) vTaskResume(DrawLobbyHighscoreTask);
                     state_changed = 0;
@@ -220,16 +220,16 @@ initial_state:
                     break;
 
                 case STATE_FOUR:
-                	prints("hey i am in state 4 (gamestate)\n");
+                	prints("hey i am in state 4 (init state)\n");
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
-                    if (Game_Handler) vTaskSuspend(Game_Handler);
+                    if (GameHandlerTask) vTaskSuspend(GameHandlerTask);
                     if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
                     if (AlienShootTask) vTaskSuspend(AlienShootTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
                     if (AI_control()) if (UDPControlTask) vTaskResume(UDPControlTask);
-                    if (Init_Game) vTaskResume(Init_Game);
+                    if (InitGameTaks) vTaskResume(InitGameTaks);
                     state_changed = 0;
 
                     break;
@@ -238,12 +238,12 @@ initial_state:
                 case STATE_FIVE:
                 	prints("hey i am in state 5 (gamestate)\n");
                 	// fflush(stdout);
-//                	if (Init_Game) vTaskSuspend(Init_Game);
+//                	if (InitGameTaks) vTaskSuspend(InitGameTaks);
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskResume(DrawGameTask);
-                    if (Game_Handler) vTaskResume(Game_Handler);
+                    if (GameHandlerTask) vTaskResume(GameHandlerTask);
                     if (SwapInvadersTask) vTaskResume(SwapInvadersTask);
                     if (AlienShootTask) vTaskResume(AlienShootTask);
 
@@ -385,12 +385,12 @@ void vCheckButtonGameP(unsigned char * keycodeP_last, unsigned char* paused){
 		{
 			if(*paused == 0)
 			{
-			    static char buf[50];
-			    sprintf(buf, "PAUSE");
-		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+//			    static char buf[50];
+//			    sprintf(buf, "PAUSE");
+//		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 
 		        if (SwapInvadersTask) vTaskSuspend(SwapInvadersTask);
-		        if (Game_Handler) vTaskSuspend(Game_Handler);
+		        if (GameHandlerTask) vTaskSuspend(GameHandlerTask);
 		        if (UDPControlTask) vTaskSuspend(UDPControlTask);
 
 		    	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
@@ -404,13 +404,13 @@ void vCheckButtonGameP(unsigned char * keycodeP_last, unsigned char* paused){
 			}
 			else if(*paused == 1)
 			{
-                if (Game_Handler) vTaskResume(Game_Handler);
+                if (GameHandlerTask) vTaskResume(GameHandlerTask);
                 if (SwapInvadersTask) vTaskResume(SwapInvadersTask);
                 if (UDPControlTask) vTaskResume(UDPControlTask);
 
-			    static char buf[50];
-			    sprintf(buf, "RESUME");
-		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+//			    static char buf[50];
+//			    sprintf(buf, "RESUME");
+//		        aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 
             	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
             	{
@@ -1483,7 +1483,7 @@ void vDrawGameTask(void *pvParameters){
 					vDrawInvaders(&swap_state, alien_shape, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
 	           	    vDrawPlayer(player_shape, player_image);
 	           	    vDrawMothership(mothership_alive, mothership_shape, mothership_image);
-	           	    vDrawBullet(player_bullet_alive, player_bullet_shape, NULL);
+	           	    vDrawBullet(player_bullet_alive, player_bullet_shape, alien_bullet_image);
 					vDrawBullet(aliens_bullet_alive, aliens_bullet_shape, alien_bullet_image);
 					vDrawScore();
 					vDrawLevel();
@@ -1550,7 +1550,7 @@ void vSwapBuffers(void *pvParameters)
     while (1) {
 
         if (xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE) {
-        	vDrawFPS();
+//        	vDrawFPS();
             tumDrawUpdateScreen();
             tumEventFetchEvents(FETCH_EVENT_BLOCK);
             xSemaphoreGive(ScreenLock);

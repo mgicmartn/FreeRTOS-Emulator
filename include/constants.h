@@ -29,8 +29,8 @@
 
 #define BULLET_SIZE_X 2
 #define BULLET_SIZE_Y 10
-#define BULLET_SPEED 40
-#define ALIEN_BULLET_SPEED 15
+#define BULLET_SPEED 20
+#define ALIEN_BULLET_SPEED 6
 
 #define ALIEN_SIZE_X 20
 #define ALIEN_SIZE_Y 20
@@ -45,7 +45,7 @@
 #define MOTHERSHIP_SIZE_X 30
 #define MOTHERSHIP_SIZE_Y 20
 #define MOTHERSHIP_POS_Y (SCREEN_HEIGHT/6 - MOTHERSHIP_SIZE_Y/2)
-#define MOTHERSHIP_SPEED 3
+#define MOTHERSHIP_SPEED 1
 #define WAITING_TIME_FOR_MOTHERSHIP 10000
 
 #define INVADERS_STRECH_X (SCREEN_WIDTH/3)
@@ -141,7 +141,6 @@ typedef struct bullet_type {
 typedef struct player_type {
 	short pos_x;
 	short pos_y;
-	unsigned char lives;
 	bullet_t bullet;
     SemaphoreHandle_t lock;
 } player_t;
@@ -162,9 +161,9 @@ typedef struct enemy_type {
 typedef struct invaders_type {
 	enemy_t enemy[NUMBER_OF_ALIENS_Y][NUMBER_OF_ALIENS_X];
 	short front[NUMBER_OF_ALIENS_X];
-	unsigned char last_column_right;
-	unsigned char last_column_left;
-	unsigned char maxFront;
+	short last_column_right;
+	short last_column_left;
+	short maxFront;
 	short pos_x;
 	double float_pos_x;
 	short pos_y;
@@ -173,7 +172,6 @@ typedef struct invaders_type {
 	unsigned char paused;
 	unsigned char killed;
 	double speed;
-	unsigned char state;
 	bullet_t bullet;
 	SemaphoreHandle_t lock;
 

@@ -9,8 +9,8 @@
 #include "main.h"
 
 
-extern TaskHandle_t Init_Game;
-extern TaskHandle_t Game_Handler;
+extern TaskHandle_t InitGameTaks;
+extern TaskHandle_t GameHandlerTask;
 extern TaskHandle_t UDPControlTask;
 
 typedef enum { INVADERS_WON, PLAYER_WON, RESET_PRESSED } end_game_reason_t;
@@ -46,72 +46,82 @@ extern mothership_t mothership;
 extern player_t player;
 
 
-
-void increment_level();
-void decrement_level();
+void UDPHandler(size_t read_size, char *buffer, void *args);
 
 void vUDPControlTask(void *pvParameters);
 
-void UDPHandler(size_t read_size, char *buffer, void *args);
-
-unsigned char xCheckPongUDPInput(unsigned short *paddle_y);
-
-void get_highscore(short * highscore);
-
-void get_game_wrapper_flags(unsigned char* game_wrapper_infinite_life_flag, unsigned char* game_wrapper_set_score_flag);
+unsigned char xCheckMothershipUDPInput();
 
 void set_score_flag(unsigned char score_value_flag);
 
-void init_invaders(double speed);
+void increment_level();
 
-void init_player(void);
+void decrement_level();
 
-void init_mothership(void);
+void vInitInvaders(double speed);
 
-void init_bunker(void);
+void vInitPlayer(void);
 
-void init_game_wrapper(double* speed);
+void vInitMothership(void);
 
-void vInit_Game(void *pvParameters);
+void vInitBunker(void);
 
-void move_alien_bullet(bullet_t* bullet, short speed);
+void vInitGameWrapper(double* speed);
 
-void Alien_shoots();
+void vInitGameTaks(void *pvParameters);
+
+void vMoveAlienBullet(bullet_t* bullet, short speed);
+
+void vAlienShoot();
 
 void move_player_bullet(bullet_t* bullet, short speed);
 
-void handle_player_input(unsigned char* moving_left, unsigned char* moving_right);
+void vMovePlayer(unsigned char* moving_left, unsigned char* moving_right, unsigned char AI_control_ON);
 
-void move_invaders(unsigned char* invaders_won, TickType_t * last_time);
+void vMoveInvaders(unsigned char* invaders_won, TickType_t * last_time);
 
-void move_mothership(TickType_t* last_time_mothership);
+void vMoveMothership(TickType_t* last_time_mothership, unsigned char* AI_control_ON);
 
-void handle_mothership_appearance(TickType_t last_time_mothership);
+void vKillPlayerBullet(void);
 
-void vkill_Alien(unsigned char y, unsigned char x, unsigned char * player_won);
+void vKillInvadersBullet(void);
 
-void vkill_Mothership(TickType_t * last_time_mothership);
+void vKillAlien(short y, short x, unsigned char * player_won);
 
-void destruct_bunker_block_player(short s, short player_front, short t);
+void vKillMothership(TickType_t * last_time_mothership);
 
-void destruct_bunker_block_alien(short s, short aliens_front, short t);
+void vDestructBunkerBlockPlayerSide(short bunkerNumber, short player_front, short xBlock);
 
-void player_dies(unsigned char *player_dead);
+void vDestructBunkerBlockInvadersSide(short bunkerNumber, short aliens_front, short xBlock);
 
-void check_aliens_bullet_collision(unsigned char *player_dead);
+void vPlayerGotHit(unsigned char *invaders_won);
 
-void check_player_bullet_collision(unsigned char * player_won, TickType_t * last_time_mothership);
+void vCheckBulletBulletCollision(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_bullet_pos_x, short player_bullet_pos_y);
 
-void set_new_last_time_resume(	unsigned char* invaders_resume, TickType_t* last_time, TickType_t* last_time_mothership);
+void vCheckIfPlayerGotHit(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_pos_x, short player_pos_y, unsigned char *invaders_won);
 
-void handle_player_death(unsigned char* invaders_won);
+void vCheckIfBunkerGotHitInvaders(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_pos_x, short player_pos_y);
+
+void vCheckAliensBulletCollision(unsigned char *invaders_won);
+
+void vCheckIfInvadersGotHit(short invaders_pos_x, short invaders_pos_y, short player_bullet_pos_x, short player_bullet_pos_y, unsigned char * player_won, short * invaders_front);
+
+void vCheckIfBunkerGotHitPlayer(short player_bullet_pos_x, short player_bullet_pos_y);
+
+void vCheckIfMothershipGotHit(short player_bullet_pos_x, short player_bullet_pos_y, TickType_t * last_time_mothership);
+
+void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_time_mothership);
+
+void vSetLastTimeAfterResume(TickType_t* last_time, TickType_t* last_time_mothership);
 
 void handle_end_match(end_game_reason_t reason);
 
-void check_for_extra_life();
+void vCheckForExtraLife();
 
-void vGame_Handler(void *pvParameters);
+void vGameHandlerTask(void *pvParameters);
 
 int init_space_invaders_handler(void);
+
+
 
 #endif
