@@ -115,7 +115,15 @@ StackType_t xStack[ STACK_SIZE ];
 #endif
 
 
+typedef struct buttons_buffer {
+    unsigned char buttons[SDL_NUM_SCANCODES];
+    SemaphoreHandle_t lock;
+} buttons_buffer_t;
 
+typedef struct state {
+	unsigned char currState;
+	SemaphoreHandle_t lock;
+} state_t;
 
 
 

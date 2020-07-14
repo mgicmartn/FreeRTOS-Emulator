@@ -41,7 +41,7 @@ static SemaphoreHandle_t HandleUDP = NULL;
 TaskHandle_t Init_Game = NULL;
 TaskHandle_t Game_Handler = NULL;
 TaskHandle_t UDPControlTask = NULL;
-TaskHandle_t Draw_pop_up_page = NULL;
+TaskHandle_t DrawPopUpPageTask = NULL;
 
 aIO_handle_t udp_soc_receive = NULL, udp_soc_transmit = NULL;
 
@@ -473,7 +473,7 @@ void vInit_Game(void *pvParameters)
 //            xQueueSend(GameMessageQueue, &msg, 0);
 //        }
 
-		vTaskResume(Draw_pop_up_page);
+		vTaskResume(DrawPopUpPageTask);
 
 //		unsigned char fivestatesignal = 4;
 		prints("change state sent #######################\n");
@@ -1374,7 +1374,7 @@ void vGame_Handler(void *pvParameters)
 			prints("invaders won.\n");
 			// fflush(stdout);
 
-			vTaskResume(Draw_pop_up_page);
+			vTaskResume(DrawPopUpPageTask);
 
 //			if (StateQueue) xQueueSend(StateQueue, &one_state_signal, 0);
 		}
@@ -1386,7 +1386,7 @@ void vGame_Handler(void *pvParameters)
 
 			prints("player won.\n");
 
-//			vTaskResume(Draw_pop_up_page);
+//			vTaskResume(DrawPopUpPageTask);
 			if (StateQueue) xQueueSend(StateQueue, &four_state_signal, 0);
 		}
 
@@ -1467,11 +1467,11 @@ int init_space_invaders_handler(void)
         goto err_Game_Handler;
     }
 
-    if (xTaskCreate(vDraw_pop_up_page, "Draw_pop_up_page",
+    if (xTaskCreate(vDrawPopUpPageTask, "DrawPopUpPageTask",
     						mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
-    						&Draw_pop_up_page) != pdPASS) {
-        PRINT_TASK_ERROR("Draw_pop_up_page");
-        goto err_Draw_pop_up_page;
+    						&DrawPopUpPageTask) != pdPASS) {
+        PRINT_TASK_ERROR("DrawPopUpPageTask");
+        goto err_DrawPopUpPageTask;
     }
 
     if (xTaskCreate(vUDPControlTask, "UDPControlTask",
@@ -1485,7 +1485,7 @@ int init_space_invaders_handler(void)
     vTaskSuspend(Game_Handler);
     vTaskSuspend(Init_Game);
     vTaskSuspend(UDPControlTask);
-    vTaskSuspend(Draw_pop_up_page);
+    vTaskSuspend(DrawPopUpPageTask);
 
 
     return 0;
@@ -1493,8 +1493,8 @@ int init_space_invaders_handler(void)
 
     vTaskDelete(UDPControlTask);
 err_udpcontrol:
-	vTaskDelete(Draw_pop_up_page);
-err_Draw_pop_up_page:
+	vTaskDelete(DrawPopUpPageTask);
+err_DrawPopUpPageTask:
 	vSemaphoreDelete(player.lock);
 err_player_lock:
 	vSemaphoreDelete(invaders.lock);

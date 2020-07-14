@@ -41,14 +41,13 @@ const unsigned char stop_signal = STOP;
 const unsigned char shoot_signal = SHOOT;
 
 
-// Core
 static TaskHandle_t StateMachine = NULL;
 static TaskHandle_t BufferSwap = NULL;
-static TaskHandle_t buttonInput = NULL;
+static TaskHandle_t ButtonInputTask = NULL;
 
 QueueHandle_t StateQueue = NULL;
 QueueHandle_t PlayerQueue = NULL;
-static QueueHandle_t SwapInvadersQueue = NULL;
+QueueHandle_t SwapInvadersQueue = NULL;
 QueueHandle_t AlienShootsQueue = NULL;
 SemaphoreHandle_t DrawSignal = NULL;
 SemaphoreHandle_t ScreenLock = NULL;
@@ -64,22 +63,8 @@ static TaskHandle_t SwapInvadersTask = NULL;
 static TaskHandle_t AlienShootTask = NULL;
 
 
-typedef struct state {
-	unsigned char currState;
-	SemaphoreHandle_t lock;
-} state_t;
-
 static state_t state = { 0 };
-
-
-typedef struct buttons_buffer {
-    unsigned char buttons[SDL_NUM_SCANCODES];
-    SemaphoreHandle_t lock;
-} buttons_buffer_t;
-
 static buttons_buffer_t buttons = { 0 };
-
-
 
 
 void xGetButtonInput(void)
@@ -98,8 +83,8 @@ unsigned char xGetState(void)
     if (xSemaphoreTake(state.lock, 0) == pdTRUE)
     {
         my_state = state.currState;
-        xSemaphoreGive(state.lock);
     }
+    xSemaphoreGive(state.lock);
 
     return my_state;
 }
@@ -109,8 +94,8 @@ void vSetState(unsigned char currState)
     if (xSemaphoreTake(state.lock, 0) == pdTRUE)
     {
         state.currState = currState;
-        xSemaphoreGive(state.lock);
     }
+    xSemaphoreGive(state.lock);
 }
 
 
@@ -125,35 +110,6 @@ void checkDraw(unsigned char status, const char *msg)
     }
 }
 
-void give_all_sempaphores()
-{
-    if(xSemaphoreGive(invaders.lock) != pdTRUE)
-    {
-    	prints("1 invaders lock wasn't taken.\n");
-		// fflush(stdout);
-    }
-    if(xSemaphoreGive(player.lock) != pdTRUE)
-    {
-    	prints("2 player lock wasn't taken.\n");
-		// fflush(stdout);
-    }
-    if(xSemaphoreGive(bunker.lock) != pdTRUE)
-    {
-    	prints("3 bunker lock wasn't taken.\n");
-		// fflush(stdout);
-    }
-    if(xSemaphoreGive(game_wrapper.lock) != pdTRUE)
-    {
-    	prints("4 game_wrapper lock wasn't taken.\n");
-		// fflush(stdout);
-    }
-    if(xSemaphoreGive(mothership.lock) != pdTRUE)
-    {
-    	prints("5 mothership lock wasn't taken.\n");
-		// fflush(stdout);
-    }
-}
-
 
 unsigned char AI_control()
 {
@@ -162,9 +118,8 @@ unsigned char AI_control()
 	if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
 	{
 		mothership_AI_control = mothership.AI_control;
-
-		xSemaphoreGive(mothership.lock);
 	}
+	xSemaphoreGive(mothership.lock);
 
 	return mothership_AI_control;
 }
@@ -222,7 +177,7 @@ initial_state:
         if (state_changed) {
             switch (current_state) {
                 case STATE_ONE:
-                	give_all_sempaphores();
+                	prints("hey i am in state 1 (gamestate)\n");
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
@@ -236,7 +191,7 @@ initial_state:
 
                     break;
                 case STATE_TWO:
-                	give_all_sempaphores();
+                	prints("hey i am in state 2 (gamestate)\n");
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
@@ -250,7 +205,7 @@ initial_state:
 
                     break;
                 case STATE_THREE:
-                	give_all_sempaphores();
+                	prints("hey i am in state 3 (gamestate)\n");
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawGameTask) vTaskSuspend(DrawGameTask);
@@ -265,7 +220,7 @@ initial_state:
                     break;
 
                 case STATE_FOUR:
-                	give_all_sempaphores();
+                	prints("hey i am in state 4 (gamestate)\n");
                     if (DrawLobbyMainTask) vTaskSuspend(DrawLobbyMainTask);
                     if (DrawLobbyCheatTask) vTaskSuspend(DrawLobbyCheatTask);
                     if (DrawLobbyHighscoreTask) vTaskSuspend(DrawLobbyHighscoreTask);
@@ -281,7 +236,6 @@ initial_state:
 
 
                 case STATE_FIVE:
-                	give_all_sempaphores();
                 	prints("hey i am in state 5 (gamestate)\n");
                 	// fflush(stdout);
 //                	if (Init_Game) vTaskSuspend(Init_Game);
@@ -415,7 +369,8 @@ void vDrawFPS(void)
     tumFontPutFontHandle(cur_font);
 }
 
-void checkButton_P(unsigned char * keycodeP_last, const unsigned char go_to){
+
+void vCheckButtonP(unsigned char * keycodeP_last, const unsigned char go_to){
 	if (*keycodeP_last != buttons.buttons[KEYCODE(P)])
 	{
 		if(buttons.buttons[KEYCODE(P)])	if (StateQueue) xQueueSend(StateQueue, &go_to, 0);
@@ -423,7 +378,7 @@ void checkButton_P(unsigned char * keycodeP_last, const unsigned char go_to){
 	}
 }
 
-void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
+void vCheckButtonGameP(unsigned char * keycodeP_last, unsigned char* paused){
 	if (*keycodeP_last != buttons.buttons[KEYCODE(P)])
 	{
 		if(buttons.buttons[KEYCODE(P)])
@@ -441,8 +396,8 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 		    	if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE)
 		    	{
 		    		invaders.paused = 1;
-		    		xSemaphoreGive(invaders.lock);
 		    	}
+	    		xSemaphoreGive(invaders.lock);
 
 		        *paused = 1;
 
@@ -461,8 +416,8 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
             	{
             		invaders.resume = 1;
             		invaders.paused = 0;
-            		xSemaphoreGive(invaders.lock);
             	}
+        		xSemaphoreGive(invaders.lock);
                 *paused = 0;
 			}
 		}
@@ -471,7 +426,7 @@ void checkButton_P_game(unsigned char * keycodeP_last, unsigned char* paused){
 	}
 }
 
-void checkButton_C(unsigned char * keycodeC_last, const unsigned char go_to){
+void vCheckButtonC(unsigned char * keycodeC_last, const unsigned char go_to){
 	if (*keycodeC_last != buttons.buttons[KEYCODE(C)])
 	{
 		if(buttons.buttons[KEYCODE(C)])	if (StateQueue) xQueueSend(StateQueue, &go_to, 0);
@@ -479,7 +434,7 @@ void checkButton_C(unsigned char * keycodeC_last, const unsigned char go_to){
 	}
 }
 
-void checkButton_A(unsigned char * keycodeA_last){
+void vCheckButtonA(unsigned char * keycodeA_last){
 	if (*keycodeA_last != buttons.buttons[KEYCODE(A)])
 	{
 		if(buttons.buttons[KEYCODE(A)])
@@ -487,14 +442,14 @@ void checkButton_A(unsigned char * keycodeA_last){
 			if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
 			{
 				mothership.AI_control = (mothership.AI_control + 1) % 2;
-				xSemaphoreGive(mothership.lock);
 			}
+			xSemaphoreGive(mothership.lock);
 		}
 		*keycodeA_last = buttons.buttons[KEYCODE(A)];
 	}
 }
 
-void checkButton_H(unsigned char * keycodeH_last, const unsigned char go_to){
+void vCheckButtonH(unsigned char * keycodeH_last, const unsigned char go_to){
 	if (*keycodeH_last != buttons.buttons[KEYCODE(H)])
 	{
 		if(buttons.buttons[KEYCODE(H)])	if (StateQueue) xQueueSend(StateQueue, &go_to, 0);
@@ -502,7 +457,7 @@ void checkButton_H(unsigned char * keycodeH_last, const unsigned char go_to){
 	}
 }
 
-void checkButton_B(unsigned char * keycodeB_last, const unsigned char go_to, unsigned char* paused){
+void vCheckButtonB(unsigned char * keycodeB_last, const unsigned char go_to, unsigned char* paused){
 	if (*keycodeB_last != buttons.buttons[KEYCODE(B)])
 	{
 
@@ -516,7 +471,7 @@ void checkButton_B(unsigned char * keycodeB_last, const unsigned char go_to, uns
 	}
 }
 
-void checkButton_L(unsigned char * keycodeL_last){
+void vCheckButtonL(unsigned char * keycodeL_last){
 	if (*keycodeL_last != buttons.buttons[KEYCODE(L)])
 	{
 
@@ -525,14 +480,14 @@ void checkButton_L(unsigned char * keycodeL_last){
 			if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 			{
 				game_wrapper.infinite_life_flag = (game_wrapper.infinite_life_flag + 1) % 2;
-				xSemaphoreGive(game_wrapper.lock);
 			}
+			xSemaphoreGive(game_wrapper.lock);
 		}
 		*keycodeL_last = buttons.buttons[KEYCODE(L)];
 	}
 }
 
-void checkButton_T(unsigned char * keycodeT_last){
+void vCheckButtonT(unsigned char * keycodeT_last){
 	if (*keycodeT_last != buttons.buttons[KEYCODE(T)])
 	{
 
@@ -544,7 +499,7 @@ void checkButton_T(unsigned char * keycodeT_last){
 	}
 }
 
-void checkButton_K(unsigned char * keycodeK_last){
+void vCheckButtonK(unsigned char * keycodeK_last){
 	if (*keycodeK_last != buttons.buttons[KEYCODE(K)])
 	{
 
@@ -556,7 +511,7 @@ void checkButton_K(unsigned char * keycodeK_last){
 	}
 }
 
-void checkButton_U(unsigned char * keycodeU_last){
+void vCheckButtonU(unsigned char * keycodeU_last){
 	if (*keycodeU_last != buttons.buttons[KEYCODE(U)])
 	{
 
@@ -570,7 +525,7 @@ void checkButton_U(unsigned char * keycodeU_last){
 
 
 
-void checkButton_LEFT(unsigned char * keycodeLEFT_last, short* debounce_LEFT, const unsigned char move, const unsigned char stop){
+void vCheckButtonLEFT(unsigned char * keycodeLEFT_last, short* debounce_LEFT, const unsigned char move, const unsigned char stop){
 
 	if (*keycodeLEFT_last != buttons.buttons[KEYCODE(LEFT)]) (*debounce_LEFT)++;
 	else (*debounce_LEFT) = 0;
@@ -598,7 +553,7 @@ void checkButton_LEFT(unsigned char * keycodeLEFT_last, short* debounce_LEFT, co
 
 }
 
-void checkButton_RIGHT(unsigned char * keycodeRIGHT_last, short* debounce_RIGHT, const unsigned char move, const unsigned char stop){
+void vCheckButtonRIGHT(unsigned char * keycodeRIGHT_last, short* debounce_RIGHT, const unsigned char move, const unsigned char stop){
 
 	if (*keycodeRIGHT_last != buttons.buttons[KEYCODE(RIGHT)]) (*debounce_RIGHT)++;
 	else (*debounce_RIGHT) = 0;
@@ -623,7 +578,7 @@ void checkButton_RIGHT(unsigned char * keycodeRIGHT_last, short* debounce_RIGHT,
 	}
 }
 
-void checkButton_UP(unsigned char * keycodeUP_last){
+void vCheckButtonUP(unsigned char * keycodeUP_last){
 	if (*keycodeUP_last != buttons.buttons[KEYCODE(UP)])
 	{
 		if(buttons.buttons[KEYCODE(UP)] == 1)
@@ -634,7 +589,7 @@ void checkButton_UP(unsigned char * keycodeUP_last){
 	}
 }
 
-void checkButton_DOWN(unsigned char * keycodeDOWN_last){
+void vCheckButtonDOWN(unsigned char * keycodeDOWN_last){
 	if (*keycodeDOWN_last != buttons.buttons[KEYCODE(DOWN)])
 	{
 		if(buttons.buttons[KEYCODE(DOWN)] == 1)
@@ -646,7 +601,7 @@ void checkButton_DOWN(unsigned char * keycodeDOWN_last){
 	}
 }
 
-void checkButton_SPACE(unsigned char * keycodeSPACE_last, const unsigned char event){
+void vCheckButtonSPACE(unsigned char * keycodeSPACE_last, const unsigned char event){
 	if (*keycodeSPACE_last != buttons.buttons[KEYCODE(SPACE)])
 	{
 		if(buttons.buttons[KEYCODE(SPACE)])	if (PlayerQueue) xQueueSend(PlayerQueue, &event, 0);
@@ -658,29 +613,29 @@ void checkButton_SPACE(unsigned char * keycodeSPACE_last, const unsigned char ev
 #define eSTATE_RUNNING 2
 #define eSTATE_SUSPENDED 4
 
-void vbuttonInput(void *pvParameters){
+void vButtonInputTask(void *pvParameters){
 
-unsigned char currentState = 0;
-unsigned char lastState = 0;
-unsigned char paused = 0;
+	unsigned char currentState = 0;
+	unsigned char lastState = 0;
+	unsigned char paused = 0;
 
-unsigned char keycodeA_last = 0;
-unsigned char keycodeC_last = 0;
-unsigned char keycodeH_last = 0;
-unsigned char keycodeP_last = 0;
-unsigned char keycodeB_last = 0;
-unsigned char keycodeL_last = 0;
-unsigned char keycodeT_last = 0;
-unsigned char keycodeK_last = 0;
-unsigned char keycodeU_last = 0;
-unsigned char keycodeRIGHT_last = 0;
-unsigned char keycodeLEFT_last = 0;
-unsigned char keycodeSPACE_last = 0;
-unsigned char keycodeUP_last = 0;
-unsigned char keycodeDOWN_last = 0;
+	unsigned char keycodeA_last = 0;
+	unsigned char keycodeC_last = 0;
+	unsigned char keycodeH_last = 0;
+	unsigned char keycodeP_last = 0;
+	unsigned char keycodeB_last = 0;
+	unsigned char keycodeL_last = 0;
+	unsigned char keycodeT_last = 0;
+	unsigned char keycodeK_last = 0;
+	unsigned char keycodeU_last = 0;
+	unsigned char keycodeRIGHT_last = 0;
+	unsigned char keycodeLEFT_last = 0;
+	unsigned char keycodeSPACE_last = 0;
+	unsigned char keycodeUP_last = 0;
+	unsigned char keycodeDOWN_last = 0;
 
-short debounceLEFT = 0;
-short debounceRIGHT = 0;
+	short debounceLEFT = 0;
+	short debounceRIGHT = 0;
 
 
 
@@ -697,71 +652,64 @@ short debounceRIGHT = 0;
 		}
 
 
-        switch (currentState) {
-            case STATE_ONE:
-        		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
-        		{
-        			checkButton_P(&keycodeP_last, four_state_signal);
-        			checkButton_C(&keycodeC_last, two_state_signal);
-        			checkButton_H(&keycodeH_last, three_state_signal);
-        			checkButton_A(&keycodeA_last);
+		switch (currentState) {
+			case STATE_ONE:
+				if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
+				{
+					vCheckButtonP(&keycodeP_last, four_state_signal);
+					vCheckButtonC(&keycodeC_last, two_state_signal);
+					vCheckButtonH(&keycodeH_last, three_state_signal);
+					vCheckButtonA(&keycodeA_last);
+				}
+				xSemaphoreGive(buttons.lock);
+				break;
 
-        			xSemaphoreGive(buttons.lock);
-        		}
-                break;
+			case STATE_TWO:
+				if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
+				{
+					vCheckButtonP(&keycodeP_last, four_state_signal);
+					vCheckButtonB(&keycodeB_last, one_state_signal, &paused);
+					vCheckButtonL(&keycodeL_last);
+					vCheckButtonT(&keycodeT_last);
+					vCheckButtonK(&keycodeK_last);
+					vCheckButtonU(&keycodeU_last);
+					vCheckButtonDOWN(&keycodeDOWN_last);
+					vCheckButtonUP(&keycodeUP_last);
+				}
+				xSemaphoreGive(buttons.lock);
+				break;
 
-            case STATE_TWO:
-        		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
-        		{
-        			checkButton_P(&keycodeP_last, four_state_signal);
-        			checkButton_B(&keycodeB_last, one_state_signal, &paused);
-        			checkButton_L(&keycodeL_last);
-        			checkButton_T(&keycodeT_last);
-        			checkButton_K(&keycodeK_last);
-        			checkButton_U(&keycodeU_last);
-        			checkButton_DOWN(&keycodeDOWN_last);
-        			checkButton_UP(&keycodeUP_last);
+			case STATE_THREE:
+				if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
+				{
+					vCheckButtonB(&keycodeB_last, one_state_signal, &paused);
+				}
+				xSemaphoreGive(buttons.lock);
+				break;
 
-        			xSemaphoreGive(buttons.lock);
-        		}
-        		break;
+			case STATE_FOUR:
+				break;
 
-            case STATE_THREE:
-        		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
-        		{
-        			checkButton_B(&keycodeB_last, one_state_signal, &paused);
+			case STATE_FIVE:
+				if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
+				{
+					vCheckButtonB(&keycodeB_last, one_state_signal, &paused);
+					vCheckButtonGameP(&keycodeP_last, &paused);
 
-        			xSemaphoreGive(buttons.lock);
-        		}
-            	break;
+					if(!paused)
+					{
+						vCheckButtonLEFT(&keycodeLEFT_last, &debounceLEFT, move_left_signal, stop_signal);
+						vCheckButtonRIGHT(&keycodeRIGHT_last, &debounceRIGHT, move_right_signal, stop_signal);
+						vCheckButtonSPACE(&keycodeSPACE_last, shoot_signal);
+					}
+				}
+				xSemaphoreGive(buttons.lock);
+				break;
 
-            case STATE_FOUR:
-            	break;
+			default:
+				break;
 
-            case STATE_FIVE:
-        		if (xSemaphoreTake(buttons.lock, portMAX_DELAY) == pdTRUE)
-        		{
-//        			prints("took button semph\n");
-        			checkButton_B(&keycodeB_last, one_state_signal, &paused);
-        			checkButton_P_game(&keycodeP_last, &paused);
-
-        			if(!paused)
-        			{
-            			checkButton_LEFT(&keycodeLEFT_last, &debounceLEFT, move_left_signal, stop_signal);
-            			checkButton_RIGHT(&keycodeRIGHT_last, &debounceRIGHT, move_right_signal, stop_signal);
-            			checkButton_SPACE(&keycodeSPACE_last, shoot_signal);
-        			}
-
-        			xSemaphoreGive(buttons.lock);
-//        			prints("gave button semph\n");
-
-        		}
-            	break;
-
-            default:
-                break;
-
-        }
+		}
 
 		vTaskDelay(50);
 	}
@@ -769,80 +717,26 @@ short debounceRIGHT = 0;
 }
 
 
-
-void vDraw_pop_up_page(void *pvParameters)
+void vDrawPopUpField(my_square_t* pop_up_page, unsigned char* next_state, short countdown )
 {
 	static char pop_up_page_string[100];
 	static int pop_up_page_string_width = 0;
 
-//	char msg[100] = "NEXT IN";
-	unsigned char next_state = 0;
-
-	my_square_t* pop_up_page = create_rect(SCREEN_WIDTH/2 - POP_UP_PAGE_WIDTH/2, SCREEN_HEIGHT/2 - POP_UP_PAGE_HEIGHT/2, POP_UP_PAGE_WIDTH, POP_UP_PAGE_HEIGHT,Black);
-
-	image_handle_t background_image = tumDrawLoadImage("../resources/images/pop_up_page.png");
-	short countdown = SECS_TO_WAIT;
-
-	while(1)
+	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 	{
-		if (DrawGameTask) vTaskSuspend(DrawGameTask);
-
-		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
-		{
-//			msg = game_wrapper.game_message;
-			sprintf(pop_up_page_string, "%s %d s !", game_wrapper.game_message, countdown);
-			next_state = game_wrapper.next_state;
-
-			xSemaphoreGive(game_wrapper.lock);
-		}
-
-
-
-		// draw
-		if (DrawSignal)
-			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
-			{
-				xSemaphoreTake(ScreenLock, portMAX_DELAY);
-
-				if(tumDrawLoadedImage(background_image, 0, 0))
-				{
-					checkDraw(tumDrawClear(White), __FUNCTION__); 	// Clear screen
-
-				}
-
-				if (!tumDrawFilledBox(pop_up_page->x_pos, pop_up_page->y_pos, pop_up_page->width, pop_up_page->height, pop_up_page->color)){} //Draw Box.
-
-				if (!tumGetTextSize((char *)pop_up_page_string,&pop_up_page_string_width, NULL))
-					tumDrawText(pop_up_page_string,pop_up_page->x_pos + POP_UP_PAGE_WIDTH/2-pop_up_page_string_width/2,
-								pop_up_page->y_pos + POP_UP_PAGE_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
-
-
-				xSemaphoreGive(ScreenLock);
-			}
-
-		countdown--;
-
-		vTaskDelay((TickType_t)1000); // Basic sleep of 100ms
-
-		if(countdown <= 0)
-		{
-			countdown = SECS_TO_WAIT;
-
-			if (StateQueue)
-			{
-				xQueueReset(StateQueue);
-				if(xQueueSend(StateQueue, &next_state, 0) != pdPASS)
-				{
-					prints("failed to send\n");
-					// fflush(stdout);
-				}
-			}
-
-			vTaskSuspend(NULL);
-		}
-
+		sprintf(pop_up_page_string, "%s %d s !", game_wrapper.game_message, countdown);
+		*next_state = game_wrapper.next_state;
 	}
+	xSemaphoreGive(game_wrapper.lock);
+
+	tumDrawFilledBox(pop_up_page->x_pos, pop_up_page->y_pos, pop_up_page->width, pop_up_page->height, pop_up_page->color);
+
+	if (!tumGetTextSize((char *)pop_up_page_string,&pop_up_page_string_width, NULL))
+		tumDrawText(pop_up_page_string,pop_up_page->x_pos + POP_UP_PAGE_WIDTH/2-pop_up_page_string_width/2,
+					pop_up_page->y_pos + POP_UP_PAGE_HEIGHT / 2 - DEFAULT_FONT_SIZE/2, White);
 }
+
+
 
 void vDrawPlayButton(my_square_t* play_button)
 {
@@ -1035,6 +929,59 @@ void vDrawHighscore(short highscore)
 
 
 
+void vDrawPopUpPageTask(void *pvParameters)
+{
+	unsigned char next_state = 0;
+	short countdown = SECS_TO_WAIT;
+
+	my_square_t* pop_up_page = create_rect(SCREEN_WIDTH/2 - POP_UP_PAGE_WIDTH/2, SCREEN_HEIGHT/2 - POP_UP_PAGE_HEIGHT/2, POP_UP_PAGE_WIDTH, POP_UP_PAGE_HEIGHT,Black);
+
+	image_handle_t background_image = tumDrawLoadImage("../resources/images/pop_up_page.png");
+
+
+	while(1)
+	{
+		if (DrawSignal)
+		{
+			if (xSemaphoreTake(DrawSignal, portMAX_DELAY) == pdTRUE)
+			{
+				if (DrawGameTask) vTaskSuspend(DrawGameTask);
+
+				taskENTER_CRITICAL();
+
+				if(xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE)
+				{
+					vDrawBackgroundImage( background_image);
+					vDrawPopUpField(pop_up_page, &next_state, countdown );
+				}
+
+				xSemaphoreGive(ScreenLock);
+
+				taskEXIT_CRITICAL();
+
+				vTaskDelay((TickType_t)1000); // Basic sleep of 100ms
+
+				countdown--;
+
+				if(countdown <= 0)
+				{
+					if (StateQueue)
+					{
+						if(xQueueOverwrite(StateQueue, &next_state) != pdPASS)
+						{
+							prints("failed to send\n");
+							// fflush(stdout);
+						}
+					}
+					countdown = SECS_TO_WAIT;
+
+					vTaskSuspend(NULL);
+				}
+			}
+		}
+	}
+}
+
 
 
 void vDrawLobbyMainTask(void *pvParameters){
@@ -1058,8 +1005,8 @@ void vDrawLobbyMainTask(void *pvParameters){
     			if (xSemaphoreTake(mothership.lock, portMAX_DELAY) == pdTRUE)
     			{
     				mothership_AI_control = mothership.AI_control;
-    				xSemaphoreGive(mothership.lock);
     			}
+				xSemaphoreGive(mothership.lock);
 
     			taskENTER_CRITICAL();
 
@@ -1109,9 +1056,8 @@ void vDrawLobbyCheatTask(void *pvParameters){
         			game_wrapper_level = game_wrapper.level;
         			game_wrapper_infinite_life_flag = game_wrapper.infinite_life_flag;
         			game_wrapper_set_score_flag = game_wrapper.set_score_flag;
-
-        			xSemaphoreGive(game_wrapper.lock);
         		}
+    			xSemaphoreGive(game_wrapper.lock);
 
         		taskENTER_CRITICAL();
 
@@ -1124,7 +1070,6 @@ void vDrawLobbyCheatTask(void *pvParameters){
     				vDrawPlayButton(play_button);
     				vDrawBackButton(back_button);
         		}
-
 				xSemaphoreGive(ScreenLock);
 
 				taskEXIT_CRITICAL();
@@ -1156,9 +1101,8 @@ void vDrawLobbyHighscoreTask(void *pvParameters){
         		if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
         		{
         			highscore = game_wrapper.highscore;
-
-        			xSemaphoreGive(game_wrapper.lock);
         		}
+    			xSemaphoreGive(game_wrapper.lock);
 
         		taskENTER_CRITICAL();
 
@@ -1168,7 +1112,6 @@ void vDrawLobbyHighscoreTask(void *pvParameters){
     				vDrawHighscore(highscore);
     				vDrawBackButton(back_button);
         		}
-
 				xSemaphoreGive(ScreenLock);
 
         		taskEXIT_CRITICAL();
@@ -1190,8 +1133,8 @@ void vDrawScore()
 	if (xSemaphoreTake(game_wrapper.lock, 0) == pdTRUE)
 	{
 		sprintf(scoreText_string, "Score: %d", game_wrapper.score);
-		xSemaphoreGive(game_wrapper.lock);
 	}
+	xSemaphoreGive(game_wrapper.lock);
 
 	if (!tumGetTextSize((char *)scoreText_string, &scoreText_string_width, NULL))
 		tumDrawText(scoreText_string, SCREEN_WIDTH/2 - scoreText_string_width/2, SCREEN_HEIGHT/20 - DEFAULT_FONT_SIZE /2, White);
@@ -1213,9 +1156,8 @@ void vDrawPauseResume()
 		{
 			sprintf(pause_resumeText_string, "PAUSE [P]");
 		}
-
-		xSemaphoreGive(invaders.lock);
 	}
+	xSemaphoreGive(invaders.lock);
 
 	if (!tumGetTextSize((char *)pause_resumeText_string, &pause_resumeText_string_width, NULL))
 	{
@@ -1244,8 +1186,8 @@ void vDrawLevel()
 	if (xSemaphoreTake(game_wrapper.lock, 0) == pdTRUE)
 	{
 		sprintf(levelText_string, "Level: %d", game_wrapper.level + 1);
-		xSemaphoreGive(game_wrapper.lock);
 	}
+	xSemaphoreGive(game_wrapper.lock);
 
 	if (!tumGetTextSize((char *)levelText_string, &levelText_string_width, NULL))
 		tumDrawText(levelText_string, SCREEN_WIDTH/10 - levelText_string_width/2, SCREEN_HEIGHT/20 - DEFAULT_FONT_SIZE /2, White);
@@ -1265,9 +1207,8 @@ void vDrawLifes(my_square_t* life_shape, image_handle_t life_image)
 
 			}
 		}
-
-		xSemaphoreGive(game_wrapper.lock);
 	}
+	xSemaphoreGive(game_wrapper.lock);
 }
 
 void check_swap_invaders(unsigned char *swap_state)
@@ -1360,8 +1301,8 @@ void vDrawInvaders(unsigned char *swap_state, my_square_t* alien_shape, image_ha
 
 			}
 		}
-		xSemaphoreGive(invaders.lock);
 	}
+	xSemaphoreGive(invaders.lock);
 }
 
 void vDrawBullet(unsigned char bullet_alive, my_square_t* bullet_shape, image_handle_t bullet_image)
@@ -1408,9 +1349,8 @@ void vGetPlayerBulletPos(my_square_t* player_shape, my_square_t* player_bullet_s
 				player_bullet_shape->y_pos = player.bullet.pos_y;
 	    	}
 	    	*player_bullet_alive = player.bullet.alive;
-
-		xSemaphoreGive(player.lock);
 	}
+	xSemaphoreGive(player.lock);
 }
 
 void vGetAliensBulletPos(my_square_t* aliens_bullet_shape, unsigned char *aliens_bullet_alive)
@@ -1423,9 +1363,8 @@ void vGetAliensBulletPos(my_square_t* aliens_bullet_shape, unsigned char *aliens
 			aliens_bullet_shape->y_pos = invaders.bullet.pos_y;
 		}
 		*aliens_bullet_alive = invaders.bullet.alive;
-
-		xSemaphoreGive(invaders.lock);
 	}
+	xSemaphoreGive(invaders.lock);
 }
 
 void vGetMothershipPos(my_square_t* mothership_shape, unsigned char *mothership_alive)
@@ -1434,8 +1373,8 @@ void vGetMothershipPos(my_square_t* mothership_shape, unsigned char *mothership_
 	{
 		mothership_shape->x_pos = mothership.pos_x;
 		*mothership_alive = mothership.alive;
-		xSemaphoreGive(mothership.lock);
 	}
+	xSemaphoreGive(mothership.lock);
 }
 
 void vDrawBunker(my_square_t* bunker_block_shape, image_handle_t bunker_block_worse_image, image_handle_t bunker_block_bad_image, image_handle_t bunker_block_good_image )
@@ -1708,11 +1647,11 @@ int main(int argc, char *argv[])
         PRINT_TASK_ERROR("BufferSwapTask");
         goto err_bufferswap;
     }
-    if (xTaskCreate(vbuttonInput, "buttonInput",
+    if (xTaskCreate(vButtonInputTask, "ButtonInputTask",
                     mainGENERIC_STACK_SIZE * 2, NULL, configMAX_PRIORITIES-1,
-					buttonInput) != pdPASS) {
-        PRINT_TASK_ERROR("buttonInput Task");
-        goto err_buttonInput;
+					ButtonInputTask) != pdPASS) {
+        PRINT_TASK_ERROR("ButtonInputTask");
+        goto err_ButtonInputTask;
     }
 
 
@@ -1795,8 +1734,8 @@ err_SwapInvadersTask:
 err_AlienShootTask:
 	vTaskDelete(BufferSwap);
 err_bufferswap:
-	vTaskDelete(buttonInput);
-err_buttonInput:
+	vTaskDelete(ButtonInputTask);
+err_ButtonInputTask:
 	vTaskDelete(StateMachine);
 err_statemachine:
 	vQueueDelete(StateQueue);

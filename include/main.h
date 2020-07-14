@@ -40,7 +40,7 @@ extern QueueHandle_t StateQueue;
 extern QueueHandle_t PlayerQueue;
 extern QueueHandle_t AlienShootsQueue;
 
-void vDraw_pop_up_page(void *pvParameters);
+void vDrawPopUpPageTask(void *pvParameters);
 
 
 #endif // __MAIN_H__
