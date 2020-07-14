@@ -395,7 +395,7 @@ void vCheckButtonB(unsigned char * keycodeB_last, const unsigned char go_to, uns
 		if(buttons.buttons[KEYCODE(B)])
 		{
 			if(*paused) *paused = 0;
-			handle_end_match(RESET_PRESSED);
+			vEndMatch(RESET_PRESSED);
 			if (StateQueue) xQueueSend(StateQueue, &go_to, 0);
 		}
 		*keycodeB_last = buttons.buttons[KEYCODE(B)];
@@ -697,7 +697,6 @@ void vSwapBuffers(void *pvParameters)
     while (1) {
 
         if (xSemaphoreTake(ScreenLock, portMAX_DELAY) == pdTRUE) {
-//        	vDrawFPS();
             tumDrawUpdateScreen();
             tumEventFetchEvents(FETCH_EVENT_BLOCK);
             xSemaphoreGive(ScreenLock);

@@ -115,7 +115,7 @@ void vCheckPlayerBulletCollision(unsigned char * player_won, TickType_t * last_t
 
 void vSetLastTimeAfterResume(TickType_t* last_time, TickType_t* last_time_mothership);
 
-void handle_end_match(end_game_reason_t reason);
+void vEndMatch(end_game_reason_t reason);
 
 void vCheckForExtraLife();
 

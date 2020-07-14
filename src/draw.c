@@ -822,6 +822,10 @@ void vDrawBunker(my_square_t* bunker_block_shape, image_handle_t bunker_block_wo
 
 void vDrawGameTask(void *pvParameters){
 
+    TickType_t xLastWakeTime;
+    xLastWakeTime = xTaskGetTickCount();
+    const TickType_t updatePeriod = 10;
+
 	unsigned char player_bullet_alive = 0;
 	unsigned char aliens_bullet_alive = 0;
 	unsigned char mothership_alive = 0;
@@ -885,13 +889,14 @@ void vDrawGameTask(void *pvParameters){
 					vDrawPauseResume();
 					vDrawReset();
 					vDrawLifes(life_shape,life_image);
+					vDrawFPS();
 				}
 
 				xSemaphoreGive(ScreenLock);
 
 				taskEXIT_CRITICAL();
 
-				vTaskDelay((TickType_t)50); // Basic sleep of 100ms
+                vTaskDelayUntil(&xLastWakeTime, updatePeriod);
 			}
 	}
 }

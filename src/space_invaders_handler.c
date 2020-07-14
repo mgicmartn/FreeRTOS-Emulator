@@ -355,8 +355,8 @@ void vInitGameWrapper(double* speed)
 			 */
 
 			game_wrapper.set_level_flag = 0;
-			game_wrapper.level++;
-			game_wrapper.get_extra_life_scores += 20;
+			game_wrapper.level++;				// changing into higher level
+			game_wrapper.get_extra_life_scores += NEW_LEVEL_GET_EXTRA_LIFE_SCORE_REWARD;
 
 			// initialize pop up page
 			sprintf(game_wrapper.game_message, 	"YOU WON. NEXT LEVEL IN");
@@ -402,7 +402,7 @@ void vInitGameWrapper(double* speed)
 			game_wrapper.next_state = five_state_signal;
 		}
 
-		game_wrapper.speed = 0.005 * (game_wrapper.level + 1);
+		game_wrapper.speed = NEXT_LEVEL_SPEED_CLIMAX * (game_wrapper.level + 1);
 		*speed = game_wrapper.speed;
 	}
 	xSemaphoreGive(game_wrapper.lock);
@@ -1173,7 +1173,7 @@ void vSetLastTimeAfterResume(TickType_t* last_time, TickType_t* last_time_mother
 
 
 
-void handle_end_match(end_game_reason_t reason)
+void vEndMatch(end_game_reason_t reason)
 {
 
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
@@ -1183,6 +1183,7 @@ void handle_end_match(end_game_reason_t reason)
 		{
 			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
 			game_wrapper.next_level_flag = 0;
+			game_wrapper.level = 0;
 
 			sprintf(game_wrapper.game_message, "ALIENS WON. BACK TO MENUE IN");
 			game_wrapper.next_state = one_state_signal;
@@ -1196,6 +1197,7 @@ void handle_end_match(end_game_reason_t reason)
 		else if(reason == RESET_PRESSED)	// reset pressed
 		{
 			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
+			game_wrapper.level = 0;
 			game_wrapper.next_level_flag = 0;
 		}
 
@@ -1242,7 +1244,7 @@ void vGameHandlerTask(void *pvParameters)
 
 		if(invaders_won)
 		{
-			handle_end_match(INVADERS_WON);
+			vEndMatch(INVADERS_WON);
 			invaders_won = 0;
 
 			prints("invaders won.\n");
@@ -1252,7 +1254,7 @@ void vGameHandlerTask(void *pvParameters)
 
 		if(player_won)
 		{
-			handle_end_match(PLAYER_WON);
+			vEndMatch(PLAYER_WON);
 			player_won = 0;
 
 			prints("player won.\n");
