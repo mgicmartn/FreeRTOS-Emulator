@@ -913,6 +913,13 @@ void vkill_Mothership(TickType_t * last_time_mothership)
 			xSemaphoreGive(game_wrapper.lock);
 		}
 
+		if (xSemaphoreTake(player.lock, portMAX_DELAY) == pdTRUE)
+		{
+			player.bullet.alive = 0;
+
+			xSemaphoreGive(player.lock);
+		}
+
 		*last_time_mothership = xTaskGetTickCount();
 		mothership.alive = 0;
 	}
