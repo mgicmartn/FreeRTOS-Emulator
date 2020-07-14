@@ -39,6 +39,7 @@ extern SemaphoreHandle_t DrawSignal;
 extern QueueHandle_t StateQueue;
 extern QueueHandle_t PlayerQueue;
 extern QueueHandle_t AlienShootsQueue;
+extern QueueHandle_t SwapInvadersQueue;
 
 void vDrawPopUpPageTask(void *pvParameters);
 
