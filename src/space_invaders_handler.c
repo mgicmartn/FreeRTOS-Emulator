@@ -201,7 +201,7 @@ unsigned char xCheckMothershipUDPInput()
 
 
 
-void set_score_flag(unsigned char score_value_flag)
+void vSetScoreFlag(unsigned char score_value_flag)
 {
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE)
 	{
@@ -220,14 +220,11 @@ void increment_level()
 	{
 		game_wrapper.level ++;
 
+		// indicate with set_level_flag that level got manually set
 		if(game_wrapper.level > 0)
-		{
 			game_wrapper.set_level_flag = 1;
-		}
 		else
-		{
 			game_wrapper.set_level_flag = 0;
-		}
 	}
 	xSemaphoreGive(game_wrapper.lock);
 }
@@ -239,6 +236,7 @@ void decrement_level()
 		if(game_wrapper.level > 0)
 			game_wrapper.level --;
 
+		// indicate with set_level_flag that level got manually set
 		if(game_wrapper.level > 0)
 			game_wrapper.set_level_flag = 1;
 		else
@@ -376,13 +374,13 @@ void vInitGameWrapper(double* speed)
 			case 0:
 				game_wrapper.score = 0;
 				break;
-			case 1:
+			case SET_SCORE_100:
 				game_wrapper.score = 100;
 				break;
-			case 2:
+			case SET_SCORE_1000:
 				game_wrapper.score = 1000;
 				break;
-			case 3:
+			case SET_SCORE_10000:
 				game_wrapper.score = 10000;
 				break;
 			default:
@@ -490,7 +488,7 @@ void vAlienShoot()
 
 
 
-void move_player_bullet(bullet_t* bullet, short speed)
+void vMovePlayerBullet(bullet_t* bullet, short speed)
 {
 	// move bulletq
 	if (bullet->alive == 1)
@@ -568,9 +566,8 @@ void vMovePlayer(unsigned char* moving_left, unsigned char* moving_right, unsign
 		if(*moving_right)
 			player.pos_x += PLAYER_SPEED;
 
-		move_player_bullet(&player.bullet, BULLET_SPEED);
 
-
+		vMovePlayerBullet(&player.bullet, BULLET_SPEED);
 
 		// send bullet status and player position to binary
 		if(AI_control_ON)

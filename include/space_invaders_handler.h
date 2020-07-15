@@ -1,3 +1,26 @@
+
+/**
+ * @file space_invaders_handler.h
+ * @author  Martin Zimmermann
+ * @date 15 July 2020
+ * @brief This file combines all functions, which handle the logic of the Game Space Invaders.
+ *
+ * @section LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details at
+ * https://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
+
 #ifndef __SPACE_INVADERS_HANDLER_H__
 #define __SPACE_INVADERS_HANDLER_H__
 
@@ -17,66 +40,120 @@ extern TaskHandle_t UDPControlTask;
 typedef enum { INVADERS_WON, PLAYER_WON, RESET_PRESSED } end_game_reason_t;
 
 
-
-//typedef enum { INIT = 0, PLAYER_WON = 1, INVADERS_WON = 2} game_messages_t;
-
-
-//#ifndef __PONG_H__
-//#define __PONG_H__
-//
-//#include "FreeRTOS.h"
-//#include "semphr.h"
-//#include "task.h"
-//
-//#define mainGENERIC_PRIORITY (tskIDLE_PRIORITY)
-//#define mainGENERIC_STACK_SIZE ((unsigned short)2560)
-//
-//extern TaskHandle_t LeftPaddleTask;
-//extern TaskHandle_t RightPaddleTask;
-//extern TaskHandle_t PongControlTask;
-//extern TaskHandle_t PausedStateTask;
-//
-//int pongInit(void);
-//
-//#endif // __PONG_H__
-
 extern invaders_t invaders;
 extern bunker_t bunker;
 extern game_wrapper_t game_wrapper;
 extern mothership_t mothership;
 extern player_t player;
 
-
+/**
+ * @brief Handler which receives and handles UDP messages and distribute them via NextKeyQueue.
+ *
+ * @param
+ *
+ */
 void UDPHandler(size_t read_size, char *buffer, void *args);
 
 void vUDPControlTask(void *pvParameters);
 
+
+/**
+ * @brief Receives handled UDP messages from binary and defines the movement of the mothership according
+ * to the incoming information.
+ *
+ * @return 0 if successful execution
+ */
 unsigned char xCheckMothershipUDPInput();
 
-void set_score_flag(unsigned char score_value_flag);
 
+/**
+ * @brief Initialize set_score_flag in game_wrapper. Gets called in Cheat Mode.
+ *
+ * @param score_value_flag: Value to which the flag should be set.
+ */
+void vSetScoreFlag(unsigned char score_value_flag);
+
+/**
+ * @brief Increments level variable in game_wrapper. If level is greater than zero, a true
+ * set_level_flag indicates a manual level selection. Gets called in Cheat Mode.
+ */
 void increment_level();
 
+/**
+ * @brief Decrements level variable in game_wrapper. If level is greater than zero, a true
+ * set_level_flag indicates a manual level selection. Gets called in Cheat Mode.
+ */
 void decrement_level();
 
+/**
+ * @brief Initializes global invaders struct, when entering Game.
+ *
+ * @param speed: Velocity of Invaders movement.
+ */
 void vInitInvaders(double speed);
 
+/**
+ * @brief Initializes global player struct, when entering Game.
+ */
 void vInitPlayer(void);
 
+/**
+ * @brief Initializes global mothership struct, when entering Game.
+ */
 void vInitMothership(void);
 
+/**
+ * @brief Initializes global bunker struct, when entering Game.
+ */
 void vInitBunker(void);
 
+/**
+ * @brief Initialize global game_wrapper struct, when entering Game. According to different flags, different
+ * variables got initialized.
+ *
+ * @param speed: defines speed of invaders for vInitInvaders(double speed).
+ */
 void vInitGameWrapper(double* speed);
 
+/**
+ * @brief Call all init functions, when entering Game.
+ *
+ * @param pvParameters: Parameters passed into the function upon execution.
+ */
 void vInitGameTaks(void *pvParameters);
 
+/**
+ * @brief Moves Alien bullet if alive, in respect to tick and speed. Detect and kill bullet if
+ * reached lower end of Screen.
+ *
+ * @param bullet: element which should get moved
+ * @param speed: scale of movement velocity
+ */
 void vMoveAlienBullet(bullet_t* bullet, short speed);
 
+/**
+ * @brief Unleash a bullet from a random alien of the back row, when receiving a shooting signal
+ * from AlienShootsQueue.
+ */
 void vAlienShoot();
 
-void move_player_bullet(bullet_t* bullet, short speed);
+/**
+ * @brief Move Player bullet if alive, in respect to tick and speed. Detect and kill bullet if
+ * reached upper end of Screen.
+ *
+ * @param bullet: element which should get moved
+ * @param speed: scale of movement velocity
+ */
+void vMovePlayerBullet(bullet_t* bullet, short speed);
 
+/**
+ * @brief Move player on x Axis and shoot according to PlayerQueue input. If AI_control_ON is true, current bullet mode
+ * and player position gets sent to UDPControl Task (eventually to binary).
+ *
+ * @param moving_left: indicates the direction of the movement as left
+ * @param moving_right: indicates the direction of the movement as right
+ * @param AI_control_ON: indicates an active TwoPlayerMode and mothership
+ */
 void vMovePlayer(unsigned char* moving_left, unsigned char* moving_right, unsigned char AI_control_ON);
 
 void vMoveInvaders(unsigned char* invaders_won, TickType_t * last_time);

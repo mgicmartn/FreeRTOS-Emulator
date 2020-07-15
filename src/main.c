@@ -424,7 +424,7 @@ void vCheckButtonT(unsigned char * keycodeT_last){
 
 		if(buttons.buttons[KEYCODE(T)])
 		{
-			set_score_flag(1);
+			vSetScoreFlag(SET_SCORE_100);
 		}
 		*keycodeT_last = buttons.buttons[KEYCODE(T)];
 	}
@@ -436,7 +436,7 @@ void vCheckButtonK(unsigned char * keycodeK_last){
 
 		if(buttons.buttons[KEYCODE(K)])
 		{
-			set_score_flag(2);
+			vSetScoreFlag(SET_SCORE_1000);
 		}
 		*keycodeK_last = buttons.buttons[KEYCODE(K)];
 	}
@@ -448,7 +448,7 @@ void vCheckButtonU(unsigned char * keycodeU_last){
 
 		if(buttons.buttons[KEYCODE(U)])
 		{
-			set_score_flag(3);
+			vSetScoreFlag(SET_SCORE_10000);
 		}
 		*keycodeU_last = buttons.buttons[KEYCODE(U)];
 	}

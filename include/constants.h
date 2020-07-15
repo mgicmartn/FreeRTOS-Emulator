@@ -20,6 +20,10 @@
 
 #define SECS_TO_WAIT 3
 
+#define SET_SCORE_100 1
+#define SET_SCORE_1000 2
+#define SET_SCORE_10000 3
+
 // Space Invader
 #define PLAYER_SIZE_X 30
 #define PLAYER_SIZE_Y 10
