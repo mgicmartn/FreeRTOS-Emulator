@@ -925,7 +925,6 @@ void vPlayerGotHit(unsigned char *invaders_won)
 void vCheckBulletBulletCollision(short invaders_bullet_pos_x, short invaders_bullet_pos_y, short player_bullet_pos_x, short player_bullet_pos_y)
 {
 	// check if player bullet hit invaders bullet
-
 	if(invaders_bullet_pos_x > player_bullet_pos_x - BULLET_SIZE_X && invaders_bullet_pos_x < player_bullet_pos_x + BULLET_SIZE_X)
 	{
 		// Check if in future (3 Bullet size y ahead) it will be behind
@@ -1178,22 +1177,24 @@ void vEndMatch(end_game_reason_t reason)
 
 		if(reason == INVADERS_WON)	// invaders won
 		{
-			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
+			if(game_wrapper.highscore < game_wrapper.score)
+				game_wrapper.highscore = game_wrapper.score;
 			game_wrapper.next_level_flag = 0;
 			game_wrapper.level = 0;
 
+			// initialize intermediate pop up page
 			sprintf(game_wrapper.game_message, "ALIENS WON. BACK TO MENUE IN");
 			game_wrapper.next_state = one_state_signal;
 
 		}
 		else if(reason == PLAYER_WON)	// player won
 		{
-			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
 			game_wrapper.next_level_flag = 1;
 		}
 		else if(reason == RESET_PRESSED)	// reset pressed
 		{
-			if(game_wrapper.highscore < game_wrapper.score) game_wrapper.highscore = game_wrapper.score;
+			if(game_wrapper.highscore < game_wrapper.score)
+				game_wrapper.highscore = game_wrapper.score;
 			game_wrapper.level = 0;
 			game_wrapper.next_level_flag = 0;
 		}
@@ -1218,6 +1219,9 @@ void vCheckForExtraLife()
 
 void vGameHandlerTask(void *pvParameters)
 {
+    TickType_t xLastWakeTime;
+    xLastWakeTime = xTaskGetTickCount();
+    const TickType_t updatePeriod = 20;	// in ms
 
 	unsigned char invaders_won = 0;
 	unsigned char player_won = 0;
@@ -1259,7 +1263,7 @@ void vGameHandlerTask(void *pvParameters)
 			if (StateQueue) xQueueSend(StateQueue, &four_state_signal, 0);
 		}
 
-		vTaskDelay((TickType_t)20); // Basic sleep of 20ms
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(updatePeriod));
 	}
 }
 
