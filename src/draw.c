@@ -606,7 +606,7 @@ void vDrawLifes(my_square_t* life_shape, image_handle_t life_image)
 	xSemaphoreGive(game_wrapper.lock);
 }
 
-void check_swap_invaders(unsigned char *swap_state)
+void vCheckSwapInvaders(unsigned char *swap_state)
 {
 	unsigned char input = 0;
 
@@ -690,7 +690,7 @@ void vDrawInvaders(unsigned char *swap_state, my_square_t* alien_shape, image_ha
 				// if Alien is alive
 				if (invaders.enemy[i][j].alive)
 				{
-					check_swap_invaders(swap_state);
+					vCheckSwapInvaders(swap_state);
 					vDrawAlien(swap_state, alien_shape, invaders_pos_x, invaders_pos_y, i, j, alien_1_1_image, alien_1_2_image, alien_2_1_image, alien_2_2_image, alien_3_1_image, alien_3_2_image);
 				}
 
