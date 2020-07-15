@@ -326,7 +326,7 @@ void vGetMothershipPos(my_square_t *mothership_shape,
 		unsigned char *mothership_alive);
 
 /**
- * @brief Draws for each bunker a set number of x and y blocks. Whether partly
+ * @brief Draws for each bunker a fixed number of x and y blocks. Whether partly
  * destroyed can be seen in bunker struct, according to this destruction state,
  * different block_images get drawn. The rectangle also contains the position
  * in x and y.

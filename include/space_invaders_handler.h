@@ -66,9 +66,9 @@ void UDPHandler(size_t read_size, char *buffer, void *args);
 void vUDPControlTask(void *pvParameters);
 
 /**
- * @brief Receives handled UDP messages from binary and defines the movement of
- * the mothership according
- * to the incoming information.
+ * @brief Receives INC,DEC and NONE commands from UDPHandler and defines the movement of
+ * the mothership according to the incoming information. This function must not be called
+ * outside of a mothership.lock possession.
  *
  * @return 0 if successful execution
  */
@@ -427,6 +427,15 @@ void vEndMatch(end_game_reason_t reason);
  * The number of life's never extends three.
  */
 void vCheckForExtraLife();
+
+
+/**
+ * @brief Fetch the state if the current match starts in TwoPlayerMode or in
+ * SinglePlayerMode.
+ *
+ * @returns: 0 if SinglePlayerMode, 1 if TwoPlayerMode
+ */
+unsigned char xGetAIControl();
 
 /**
  * @brief Task to handle every update of the Space Invader Game logic. Gets
