@@ -29,6 +29,7 @@
 #include "draw.h"
 
 // create handles of Draw tasks
+TaskHandle_t DrawPopUpPageTask = NULL;
 TaskHandle_t DrawLobbyMainTask = NULL;
 TaskHandle_t DrawLobbyCheatTask = NULL;
 TaskHandle_t DrawLobbyHighscoreTask = NULL;
@@ -1043,6 +1044,13 @@ int vInit_Draw() {
 		goto err_DrawLobbyCheatTask;
 	}
 
+	if (xTaskCreate(vDrawPopUpPageTask, "DrawPopUpPageTask",
+	mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
+			&DrawPopUpPageTask) != pdPASS) {
+		PRINT_TASK_ERROR("DrawPopUpPageTask");
+		goto err_DrawPopUpPageTask;
+	}
+
 	if (xTaskCreate(vDrawLobbyHighscoreTask, "DrawLobbyHighscoreTask",
 	mainGENERIC_STACK_SIZE * 2, NULL, mainGENERIC_PRIORITY + 3,
 			&DrawLobbyHighscoreTask) != pdPASS) {
@@ -1059,16 +1067,22 @@ int vInit_Draw() {
 
 	vTaskSuspend(DrawLobbyMainTask);
 	vTaskSuspend(DrawLobbyCheatTask);
+	vTaskSuspend(DrawPopUpPageTask);
 	vTaskSuspend(DrawLobbyHighscoreTask);
 	vTaskSuspend(DrawGameTask);
 
 	return 0;
 
+err_DrawGameTask:
+	vTaskDelete(DrawLobbyHighscoreTask);
+err_DrawLobbyHighscoreTask:
+	vTaskDelete(DrawPopUpPageTask);
+err_DrawPopUpPageTask:
+	vTaskDelete(DrawLobbyCheatTask);
+err_DrawLobbyCheatTask:
 	vTaskDelete(DrawLobbyMainTask);
-	err_DrawLobbyMainTask: vTaskDelete(DrawLobbyCheatTask);
-	err_DrawLobbyCheatTask: vTaskDelete(DrawLobbyHighscoreTask);
-	err_DrawLobbyHighscoreTask: vTaskDelete(DrawGameTask);
-	err_DrawGameTask:
+err_DrawLobbyMainTask:
+
 
 	return -1;
 }

@@ -5,48 +5,53 @@
 #define mainGENERIC_PRIORITY (tskIDLE_PRIORITY)
 #define mainGENERIC_STACK_SIZE ((unsigned short)2560)
 
+#define STATE_ONE 0
+#define STATE_TWO 1
+#define STATE_THREE 2
+#define STATE_FOUR 3
+#define STATE_FIVE 4
+
+#define MOVE_RIGHT 2
+#define MOVE_LEFT 1
+#define STOP 0
+#define SHOOT 3
+
+#define UDP_BUFFER_SIZE 1024
+#define UDP_RECEIVE_PORT 1234
+#define UDP_TRANSMIT_PORT 1235
 
 #define BUTTON_DEBOUNCE_DELAY 50
 
-//Exercise 2
-#define NUMBERofSTATES 2
-#define ROT_ANGLE_VELOC 1
-#define SHAPES_SIZE 60
+// Draw definitions
 #define LOBBY_BUTTON_WIDTH 400
 #define LOBBY_BUTTON_HEIGHT 60
-
+#define SHAPES_SIZE 60
 #define POP_UP_PAGE_WIDTH 400
 #define POP_UP_PAGE_HEIGHT 200
 
-#define SECS_TO_WAIT 3
-
-#define SET_SCORE_100 1
-#define SET_SCORE_1000 2
-#define SET_SCORE_10000 3
-
-// Space Invader
+// Player definitions
 #define PLAYER_SIZE_X 30
 #define PLAYER_SIZE_Y 10
 #define PLAYER_INIT_X (SCREEN_WIDTH/2)
 #define PLAYER_INIT_Y (SCREEN_HEIGHT*5/6)
 #define PLAYER_SPEED 4
-
 #define BULLET_SIZE_X 2
 #define BULLET_SIZE_Y 10
 #define BULLET_SPEED 18
-#define ALIEN_BULLET_SPEED 6
 
+#define LIFE_SIZE_X 20
+#define LIFE_SIZE_Y 20
+#define LIFE_SIZE_DISTANCE (LIFE_SIZE_X + 10)
+
+// Invaders definitions
 #define ALIEN_SHOOT_DELAY 500
-
 #define ALIEN_SIZE_X 20
 #define ALIEN_SIZE_Y 20
 #define ALIEN_DISTANCE (SCREEN_WIDTH/24)
 #define ALIEN_TYPE_1_SCORE_REWARD 30
 #define ALIEN_TYPE_2_SCORE_REWARD 20
 #define ALIEN_TYPE_3_SCORE_REWARD 10
-#define MOTHERSHIP_SCORE_REWARD 50
-#define NEW_LEVEL_GET_EXTRA_LIFE_SCORE_REWARD 20
-#define NEXT_LEVEL_SPEED_CLIMAX 0.01
+#define ALIEN_BULLET_SPEED 6
 #define NUMBER_OF_ALIENS_X 10
 #define NUMBER_OF_ALIENS_Y 5
 
@@ -66,7 +71,6 @@
 
 #define LEFT_BORDER (INVADERS_INIT_POS_X)
 #define RIGHT_BORDER (SCREEN_WIDTH - LEFT_BORDER)
-
 #define BOTTOM_BORDER (PLAYER_INIT_Y - INVADERS_SIZE_Y)
 
 #define BUNKER_BLOCK_SIZE_X 6
@@ -75,11 +79,16 @@
 #define NUM_BUNKER_BLOCK_Y 4
 #define BUNKER_POS_Y (SCREEN_HEIGHT/8 * 6)
 
-#define LIFE_SIZE_X 20
-#define LIFE_SIZE_Y 20
-#define LIFE_SIZE_DISTANCE (LIFE_SIZE_X + 10)
+#define SECS_TO_WAIT 3
 
-//Exercise 3
+#define SET_SCORE_100 1
+#define SET_SCORE_1000 2
+#define SET_SCORE_10000 3
+#define MOTHERSHIP_SCORE_REWARD 50
+#define NEW_LEVEL_GET_EXTRA_LIFE_SCORE_REWARD 20
+#define NEXT_LEVEL_SPEED_CLIMAX 0.01
+
+
 #define STATE_QUEUE_LENGTH 1
 #define PLAYER_QUEUE_LENGTH 1
 #define BUTTON_COUNT_QUEUE_LENGTH 1
@@ -87,59 +96,33 @@
 #define ALIENS_SHOOTS_QUEUE_LENGTH 1
 #define PRINT_QUEUE_LENGTH 10
 
-
-#define STATE_ONE 0
-#define STATE_TWO 1
-#define STATE_THREE 2
-#define STATE_FOUR 3
-#define STATE_FIVE 4
-
-#define MOVE_RIGHT 2
-#define MOVE_LEFT 1
-#define STOP 0
-#define SHOOT 3
-
-
-#define UDP_BUFFER_SIZE 1024
-#define UDP_RECEIVE_PORT 1234
-#define UDP_TRANSMIT_PORT 1235
-
-
-//#define NEXT_TASK 0
-//#define PREV_TASK 1
-//#define NEXT_NEXT_TASK 2
-//#define PREV_PREV_TASK 3
-
 #define STARTING_STATE STATE_ONE
-
 #define STATE_DEBOUNCE_DELAY 300
 
 #define KEYCODE(CHAR) SDL_SCANCODE_##CHAR
 #define PRINT_TASK_ERROR(task) PRINT_ERROR("Failed to print task ##task");
 
 
-// dynamically allocated task circleBlink2
-#define STACK_SIZE 200
-StaticTask_t xTaskBuffer;
-StackType_t xStack[ STACK_SIZE ];
-
 #ifdef TRACE_FUNCTIONS
 #include "tracer.h"
 #endif
 
+enum color_t {red, green, purple};
+enum direction_t {left, right, stationary};
 
+// button handling
 typedef struct buttons_buffer {
     unsigned char buttons[SDL_NUM_SCANCODES];
     SemaphoreHandle_t lock;
 } buttons_buffer_t;
 
+// state handling
 typedef struct state {
 	unsigned char currState;
 	SemaphoreHandle_t lock;
 } state_t;
 
-
-
+// player handling
 typedef struct bullet_type {
 	short pos_x;
 	short pos_y;
@@ -153,13 +136,7 @@ typedef struct player_type {
     SemaphoreHandle_t lock;
 } player_t;
 
-
-
-
-
-enum color_t {red, green, purple};
-enum direction_t {left, right, stationary};
-
+// invaders handling
 typedef struct enemy_type {
 	enum color_t color;
 	unsigned char alive;
@@ -185,10 +162,7 @@ typedef struct invaders_type {
 
 } invaders_t;
 
-//extern SemaphoreHandle_t invaders.lock;
-
-
-
+// bunkers handling
 typedef struct single_bunker_type {
 	unsigned char block_destruction_state[NUM_BUNKER_BLOCK_Y][NUM_BUNKER_BLOCK_X];
 	short pos_x;
@@ -203,7 +177,7 @@ typedef struct bunker_type {
 } bunker_t;
 
 
-
+// game_wrapper handling
 typedef struct game_wrapper_type {
 	short score;
 	short remaining_life;
@@ -221,7 +195,7 @@ typedef struct game_wrapper_type {
 } game_wrapper_t;
 
 
-
+// mothership handling
 typedef struct mothership_type{
 	unsigned char alive;
 	short pos_x;

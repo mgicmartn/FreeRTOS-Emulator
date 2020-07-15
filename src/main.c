@@ -320,8 +320,12 @@ void vCheckButtonGameP(unsigned char *keycodeP_last, unsigned char *paused) {
 					vTaskSuspend(SwapInvadersTask);
 				if (GameHandlerTask)
 					vTaskSuspend(GameHandlerTask);
-				if (UDPControlTask)
-					vTaskSuspend(UDPControlTask);
+				if (DrawGameTask)
+					vTaskSuspend(DrawGameTask);
+				if (xGetAIControl())
+					if (UDPControlTask)
+						vTaskSuspend(UDPControlTask);
+
 
 				// set paused state for other tasks to check if needed
 				if (xSemaphoreTake(invaders.lock, portMAX_DELAY) == pdTRUE) {
@@ -337,8 +341,11 @@ void vCheckButtonGameP(unsigned char *keycodeP_last, unsigned char *paused) {
 					vTaskResume(GameHandlerTask);
 				if (SwapInvadersTask)
 					vTaskResume(SwapInvadersTask);
-				if (UDPControlTask)
-					vTaskResume(UDPControlTask);
+				if (DrawGameTask)
+					vTaskResume(DrawGameTask);
+				if (xGetAIControl())
+					if (UDPControlTask)
+						vTaskResume(UDPControlTask);
 
 				// send RESUME to binary
 				static char buf[50];
@@ -813,27 +820,38 @@ int main(int argc, char *argv[]) {
 
 	return EXIT_SUCCESS;
 
+err_AlienShootTask:
 	vTaskDelete(SwapInvadersTask);
-	err_SwapInvadersTask: vTaskDelete(AlienShootTask);
-	err_AlienShootTask: vTaskDelete(BufferSwap);
-	err_bufferswap: vTaskDelete(ButtonInputTask);
-	err_ButtonInputTask: vTaskDelete(StateMachine);
-	err_statemachine: vQueueDelete(StateQueue);
-	err_state_queue: vQueueDelete(PlayerQueue);
-	err_PlayerQueue: vQueueDelete(SwapInvadersQueue);
-	err_SwapInvadersQueue: vQueueDelete(AlienShootsQueue);
-	err_AlienShootsQueue:
+err_SwapInvadersTask:
+	vTaskDelete(ButtonInputTask);
+err_ButtonInputTask:
+	vTaskDelete(BufferSwap);
+err_bufferswap:
+	vTaskDelete(StateMachine);
+err_statemachine:
+	vQueueDelete(AlienShootsQueue);
+err_AlienShootsQueue:
+	vQueueDelete(SwapInvadersQueue);
+err_SwapInvadersQueue:
+	vQueueDelete(PlayerQueue);
+err_PlayerQueue:
+	 vQueueDelete(StateQueue);
+err_state_queue:
 	vSemaphoreDelete(DrawSignal);
-	err_draw_signal:
+err_draw_signal:
 	vSemaphoreDelete(ScreenLock);
-	err_screen_lock:
+err_screen_lock:
 	vSemaphoreDelete(state.lock);
-	err_state_lock:
+err_state_lock:
 	vSemaphoreDelete(buttons.lock);
-	err_buttons_lock: tumSoundExit();
-	err_init_audio: tumEventExit();
-	err_init_events: tumDrawExit();
-	err_init_drawing:
+err_buttons_lock:
+	tumSoundExit();
+ err_init_audio:
+ 	 tumDrawExit();
+err_init_drawing:
+	tumEventExit();
+err_init_events:
+
 
 	return EXIT_FAILURE;
 }

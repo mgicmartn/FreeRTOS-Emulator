@@ -27,6 +27,7 @@
 #include "shapes.h"
 #include "space_invaders_handler.h"
 #include "constants.h"
+#include "draw.h"
 
 // creating QueueHandles
 static QueueHandle_t PlayerXQueue = NULL;
@@ -41,7 +42,6 @@ QueueHandle_t DifficultyQueue = NULL;
 TaskHandle_t InitGameTaks = NULL;
 TaskHandle_t GameHandlerTask = NULL;
 TaskHandle_t UDPControlTask = NULL;
-TaskHandle_t DrawPopUpPageTask = NULL;
 
 // creating Sempahore handle
 static SemaphoreHandle_t HandleUDP = NULL;
@@ -397,7 +397,7 @@ void vInitGameTaks(void *pvParameters) {
 }
 
 void vMoveAlienBullet(bullet_t *bullet, short speed) {
-
+	prints("bullett is moving\n");
 	if (bullet->alive) {
 		if (bullet->pos_y < SCREEN_HEIGHT) {
 			bullet->pos_y += speed; //move bullet
@@ -548,7 +548,6 @@ void vMoveInvaders(unsigned char *invaders_won, TickType_t *last_time) {
 		// check if invaders reached bottom line/ bunkers
 		if (invaders.pos_y + ALIEN_SIZE_Y
 				+ ALIEN_DISTANCE * invaders.maxFront> BUNKER_POS_Y) {
-			prints("Invaders reached bunkes.\n");
 			if (*invaders_won == 0)
 				*invaders_won = 1;
 		}
@@ -794,7 +793,7 @@ void vPlayerGotHit(unsigned char *invaders_won) {
 	if (xSemaphoreTake(game_wrapper.lock, portMAX_DELAY) == pdTRUE) {
 		if (!game_wrapper.infinite_life_flag) {
 			game_wrapper.remaining_life--;	// player loses a life
-//			prints("Player loses a life.\n");
+
 
 			if (game_wrapper.remaining_life <= 0) {	// check if already dead
 //				prints("Player dead.\n");
@@ -923,7 +922,7 @@ void vCheckIfInvadersGotHit(short invaders_pos_x, short invaders_pos_y,
 			< invaders_pos_y + ALIEN_SIZE_Y
 					+ ALIEN_DISTANCE * NUMBER_OF_ALIENS_Y
 			&& player_bullet_pos_y > invaders_pos_y - INVADERS_SIZE_Y / 2) {
-		prints("block reached\n");
+
 		for (short xAlien = 0; xAlien < NUMBER_OF_ALIENS_X; xAlien++) {
 			// for every alien check x
 			if ((player_bullet_pos_x
@@ -931,17 +930,17 @@ void vCheckIfInvadersGotHit(short invaders_pos_x, short invaders_pos_y,
 					&& (player_bullet_pos_x
 							< invaders_pos_x + ALIEN_SIZE_X
 									+ xAlien * ALIEN_DISTANCE)) {
-				prints("x fits\n");
+
 				// for every alien whose x the bullet is, check all y alien
 				for (short yAlien = invaders_front[xAlien]; yAlien >= 0;
 						yAlien--) {
-					prints("checks yAlien %d, xAlien %d\n", yAlien, xAlien);
+
 					if ((player_bullet_pos_y
 							< invaders_pos_y + ALIEN_SIZE_Y
 									+ ALIEN_DISTANCE * yAlien)
 							&& (player_bullet_pos_y
 									> invaders_pos_y + ALIEN_DISTANCE * yAlien)) {
-						prints("y fits yAlien %d, xAlien %d\n", yAlien, xAlien);
+
 						vKillAlien(yAlien, xAlien, player_won);
 					}
 				}
@@ -961,7 +960,8 @@ void vCheckIfBunkerGotHitPlayer(short player_bullet_pos_x,
 			for (short bunkerNumber = 0; bunkerNumber < 4; bunkerNumber++) {
 				// check at which bunker
 				if (player_bullet_pos_x > bunker.bunkers[bunkerNumber].pos_x
-						&& player_bullet_pos_x < bunker.bunkers[bunkerNumber].pos_x + BUNKER_BLOCK_SIZE_X*NUM_BUNKER_BLOCK_X) {
+						&& player_bullet_pos_x < bunker.bunkers[bunkerNumber].pos_x
+						+ BUNKER_BLOCK_SIZE_X*NUM_BUNKER_BLOCK_X) {
 					for (short xBlock = 0; xBlock < NUM_BUNKER_BLOCK_X;
 							xBlock++) {
 						// check column
@@ -1078,9 +1078,13 @@ void vEndMatch(end_game_reason_t reason) {
 			game_wrapper.level = 0;
 			game_wrapper.next_level_flag = 0;
 		}
-
-		xSemaphoreGive(game_wrapper.lock);
 	}
+	xSemaphoreGive(game_wrapper.lock);
+
+//	// send RESUME to binary
+//	static char buf[50];
+//	sprintf(buf, "RESUME");
+//	aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 }
 
 void vCheckForExtraLife() {
@@ -1106,9 +1110,7 @@ unsigned char xGetAIControl()
 }
 
 void vGameHandlerTask(void *pvParameters) {
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
-	const TickType_t updatePeriod = 20;	// in ms
+
 
 	unsigned char invaders_won = 0;
 	unsigned char player_won = 0;
@@ -1134,8 +1136,6 @@ void vGameHandlerTask(void *pvParameters) {
 			vEndMatch(INVADERS_WON);
 			invaders_won = 0;
 
-			prints("invaders won.\n");
-
 			vTaskResume(DrawPopUpPageTask);
 		}
 
@@ -1143,17 +1143,42 @@ void vGameHandlerTask(void *pvParameters) {
 			vEndMatch(PLAYER_WON);
 			player_won = 0;
 
-			prints("player won.\n");
-
 			if (StateQueue)
 				xQueueSend(StateQueue, &four_state_signal, 0);
 		}
 
-		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(updatePeriod));
+		vTaskDelay((TickType_t)20); // Basic sleep of 20ms
 	}
 }
 
 int init_space_invaders_handler(void) {
+
+	HandleUDP = xSemaphoreCreateMutex();
+	if (!HandleUDP) {
+		exit(EXIT_FAILURE);
+	}
+	PlayerXQueue = xQueueCreate(5, sizeof(short));
+	if (!PlayerXQueue) {
+		exit(EXIT_FAILURE);
+	}
+	MothershipXQueue = xQueueCreate(5, sizeof(short));
+	if (!MothershipXQueue) {
+		exit(EXIT_FAILURE);
+	}
+	PlayerBulletModeXQueue = xQueueCreate(5, sizeof(player_bullet_status_t));
+	if (!PlayerBulletModeXQueue) {
+		exit(EXIT_FAILURE);
+	}
+	DifficultyQueue = xQueueCreate(5, sizeof(unsigned char));
+	if (!DifficultyQueue) {
+		exit(EXIT_FAILURE);
+	}
+
+	NextKeyQueue = xQueueCreate(1, sizeof(opponent_cmd_t));
+	if (!NextKeyQueue) {
+		exit(EXIT_FAILURE);
+	}
+
 	player.lock = xSemaphoreCreateMutex(); 	//State Locking meachanism
 	if (!player.lock) {
 		PRINT_ERROR("Failed to create player lock");
@@ -1180,33 +1205,6 @@ int init_space_invaders_handler(void) {
 		goto err_mothership_lock;
 	}
 
-	HandleUDP = xSemaphoreCreateMutex();
-	if (!HandleUDP) {
-		exit(EXIT_FAILURE);
-	}
-
-	PlayerXQueue = xQueueCreate(5, sizeof(short));
-	if (!PlayerXQueue) {
-		exit(EXIT_FAILURE);
-	}
-	MothershipXQueue = xQueueCreate(5, sizeof(short));
-	if (!MothershipXQueue) {
-		exit(EXIT_FAILURE);
-	}
-	PlayerBulletModeXQueue = xQueueCreate(5, sizeof(player_bullet_status_t));
-	if (!PlayerBulletModeXQueue) {
-		exit(EXIT_FAILURE);
-	}
-	DifficultyQueue = xQueueCreate(5, sizeof(unsigned char));
-	if (!DifficultyQueue) {
-		exit(EXIT_FAILURE);
-	}
-
-	NextKeyQueue = xQueueCreate(1, sizeof(opponent_cmd_t));
-	if (!NextKeyQueue) {
-		exit(EXIT_FAILURE);
-	}
-
 	if (xTaskCreate(vInitGameTaks, "InitGameTaks",
 	mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
 			&InitGameTaks) != pdPASS) {
@@ -1221,13 +1219,6 @@ int init_space_invaders_handler(void) {
 		goto err_GameHandlerTask;
 	}
 
-	if (xTaskCreate(vDrawPopUpPageTask, "DrawPopUpPageTask",
-	mainGENERIC_STACK_SIZE * 3, NULL, mainGENERIC_PRIORITY + 3,
-			&DrawPopUpPageTask) != pdPASS) {
-		PRINT_TASK_ERROR("DrawPopUpPageTask");
-		goto err_DrawPopUpPageTask;
-	}
-
 	if (xTaskCreate(vUDPControlTask, "UDPControlTask",
 	mainGENERIC_STACK_SIZE, NULL, mainGENERIC_PRIORITY,
 			&UDPControlTask) != pdPASS) {
@@ -1238,24 +1229,25 @@ int init_space_invaders_handler(void) {
 	vTaskSuspend(GameHandlerTask);
 	vTaskSuspend(InitGameTaks);
 	vTaskSuspend(UDPControlTask);
-	vTaskSuspend(DrawPopUpPageTask);
+
 
 	return 0;
 
-	err_udpcontrol: vTaskDelete(DrawPopUpPageTask);
-	err_DrawPopUpPageTask:
-	vSemaphoreDelete(player.lock);
-	err_player_lock:
-	vSemaphoreDelete(invaders.lock);
-	err_invaders_lock:
-	vSemaphoreDelete(bunker.lock);
-	err_bunker_lock:
-	vSemaphoreDelete(game_wrapper.lock);
-	err_game_wrapper_lock:
+err_udpcontrol:
+	vTaskDelete(GameHandlerTask);
+err_GameHandlerTask:
+	vTaskDelete(InitGameTaks);
+err_InitGameTaks:
 	vSemaphoreDelete(mothership.lock);
-	err_mothership_lock: vTaskDelete(GameHandlerTask);
-	err_GameHandlerTask: vTaskDelete(InitGameTaks);
-	err_InitGameTaks:
+err_mothership_lock:
+	vSemaphoreDelete(game_wrapper.lock);
+err_game_wrapper_lock:
+	vSemaphoreDelete(bunker.lock);
+err_bunker_lock:
+	vSemaphoreDelete(invaders.lock);
+err_invaders_lock:
+	vSemaphoreDelete(player.lock);
+err_player_lock:
 
 	return -1;
 }

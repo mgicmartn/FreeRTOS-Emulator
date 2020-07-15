@@ -1,5 +1,5 @@
 /**
- * @file space_invaders_handler.h
+ * @file draw.h
  * @author  Martin Zimmermann
  * @date 15 July 2020
  * @brief This file combines all functions, which are related to drawing
@@ -33,6 +33,7 @@
 
 extern TaskHandle_t DrawLobbyMainTask;
 extern TaskHandle_t DrawLobbyCheatTask;
+extern TaskHandle_t DrawPopUpPageTask;
 extern TaskHandle_t DrawLobbyHighscoreTask;
 extern TaskHandle_t DrawGameTask;
 
