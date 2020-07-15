@@ -404,8 +404,14 @@ void vCheckButtonGameB(unsigned char *keycodeB_last, const unsigned char go_to,
 	if (*keycodeB_last != buttons.buttons[KEYCODE(B)]) {
 		if (buttons.buttons[KEYCODE(B)]) {
 			// handle reset from game
-			if (*paused)
+			if (*paused) {
+				// send RESUME to binary
+				static char buf[50];
+				sprintf(buf, "RESUME");
+				aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
 				*paused = 0;
+			}
+
 			vEndMatch(RESET_PRESSED);
 			if (StateQueue)
 				xQueueSend(StateQueue, &go_to, 0);

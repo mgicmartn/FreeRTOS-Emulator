@@ -1081,10 +1081,7 @@ void vEndMatch(end_game_reason_t reason) {
 	}
 	xSemaphoreGive(game_wrapper.lock);
 
-//	// send RESUME to binary
-//	static char buf[50];
-//	sprintf(buf, "RESUME");
-//	aIOSocketPut(UDP, NULL, UDP_TRANSMIT_PORT, buf, strlen(buf));
+
 }
 
 void vCheckForExtraLife() {
